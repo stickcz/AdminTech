@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Costos de Instalación</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Costos de Instalación</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar costo -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Costo de Instalación</h3>
+                        </div>
+                        <form action="/manage_installation/add" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Condición</label>
+                                            <input type="text" class="form-control" name="condition" placeholder="Condición" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Precio (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de costos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Costos Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Condición</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% costs.forEach(cost => { %>
+                                            <tr>
+                                                <td><%= cost.condition %></td>
+                                                <td class="numeric"><%= cost.price %></td>
+                                                <td>
+                                                    <form action="/manage_installation/edit/<%= cost.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_installation/delete/<%= cost.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<% layout('partials/layout') -%>
+<% title = 'Editar Producto' %>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Editar Producto</h3>
+    </div>
+    <form action="/dashboard/products/update/<%= product.id %>" method="POST" id="editProductForm">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken %>">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" name="name" value="<%= product.name %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea class="form-control" name="description" required><%= product.description %></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio (COP)</label>
+                        <input type="number" step="0.01" class="form-control" name="price" value="<%= product.price %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen (URL)</label>
+                        <input type="text" class="form-control" name="image" value="<%= product.image %>">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="category" class="form-control" required>
+                            <option value="Smartphones" <%= product.category === 'Smartphones' ? 'selected' : '' %>>Smartphones</option>
+                            <option value="Seguridad" <%= product.category === 'Seguridad' ? 'selected' : '' %>>Seguridad</option>
+                            <option value="Computadores" <%= product.category === 'Computadores' ? 'selected' : '' %>>Computadores</option>
+                            <option value="Accesorios" <%= product.category === 'Accesorios' ? 'selected' : '' %>>Accesorios</option>
+                            <option value="Sistemas POS" <%= product.category === 'Sistemas POS' ? 'selected' : '' %>>Sistemas POS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select name="status" class="form-control" required>
+                            <option value="available" <%= product.status === 'available' ? 'selected' : '' %>>Disponible</option>
+                            <option value="coming soon" <%= product.status === 'coming soon' ? 'selected' : '' %>>Próximamente</option>
+                            <option value="sold out" <%= product.status === 'sold out' ? 'selected' : '' %>>Agotado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (opcional)</label>
+                        <input type="text" class="form-control" name="discount" value="<%= product.discount %>">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+            <a href="/dashboard/products" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('editProductForm').addEventListener('submit', function(e) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const csrfInput = this.querySelector('input[name="_csrf"]');
+    if (csrfInput) {
+        csrfInput.value = csrfToken;
+    }
+});
+</script>

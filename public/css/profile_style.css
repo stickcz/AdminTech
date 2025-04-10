@@ -1,0 +1,71 @@
+html {
+    scroll-behavior: smooth;
+}
+
+.profile-section {
+    background: #f8f9fa;
+    padding: 3rem 0;
+    border-radius: 10px;
+    margin: 2rem 0;
+    scroll-margin-top: 70px; /* Ajusta según la altura de tu navbar */
+}
+
+.skill-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.skill-card:hover {
+    transform: translateY(-5px);
+}
+
+.progress {
+    height: 10px;
+    margin-top: 1rem;
+}
+
+.project-card {
+    border: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    /* Añade estos estilos al inicio del archivo */
+    .navbar {
+        transition: all 0.3s ease;
+    }
+    
+    .navbar-collapse {
+        transition: all 0.3s ease;
+    }
+    
+    .navbar-toggler {
+        border: none;
+        padding: 0.5rem;
+    }
+    
+    .navbar-toggler:focus {
+        outline: none;
+        box-shadow: none;
+    }
+    
+    @media (max-width: 991.98px) {
+        .navbar-collapse {
+            background: #007bff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .navbar-nav .nav-item {
+            padding: 0.5rem 0;
+        }
+    }
+    transition: all 0.3s ease;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}

@@ -1,0 +1,131 @@
+<%- include('partials/header') %>
+
+<div class="wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
+        <!-- Content Header -->
+        <section class="content-header">
+            <div class="container">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>Tienda</h1>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container">
+                <div class="row">
+                    <!-- Sidebar con filtros -->
+                    <div class="col-md-3">
+                        <div class="card card-primary card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">Filtros</h3>
+                            </div>
+                            <div class="card-body">
+                                <h5>Categorías</h5>
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" type="checkbox" id="filterCameras" value="cameras">
+                                    <label class="custom-control-label" for="filterCameras">Cámaras</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" type="checkbox" id="filterRecorders" value="recorders">
+                                    <label class="custom-control-label" for="filterRecorders">Grabadores</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" type="checkbox" id="filterAccessories" value="accessories">
+                                    <label class="custom-control-label" for="filterAccessories">Accesorios</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" type="checkbox" id="filterCables" value="cables">
+                                    <label class="custom-control-label" for="filterCables">Cables</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" type="checkbox" id="filterProtection" value="protection">
+                                    <label class="custom-control-label" for="filterProtection">Protección de Cables</label>
+                                </div>
+
+                                <hr>
+                                <h5>Rango de Precio</h5>
+                                <div class="form-group">
+                                    <label>Mínimo</label>
+                                    <input type="number" class="form-control" id="minPrice">
+                                </div>
+                                <div class="form-group">
+                                    <label>Máximo</label>
+                                    <input type="number" class="form-control" id="maxPrice">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="col-md-9">
+                        <div class="row">
+                            <% if (products && products.length > 0) { %>
+                                <% products.forEach(function(product) { %>
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>" 
+                                                 onerror="this.src='/images/default-product.jpg'">
+                                            <div class="card-body">
+                                                <h5 class="card-title"><%= product.name %></h5>
+                                                <p class="card-text"><%= product.description %></p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="h5 mb-0">$<%= product.price.toLocaleString() %></span>
+                                                    <span class="badge badge-primary"><%= product.category %></span>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer">
+                                                <button class="btn btn-primary btn-block">
+                                                    <i class="fas fa-shopping-cart"></i> Agregar al carrito
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        No hay productos disponibles en este momento.
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+$(document).ready(function() {
+    // Filtrado de productos
+    $('input[type="checkbox"], #minPrice, #maxPrice').on('change', function() {
+        filterProducts();
+    });
+
+    function filterProducts() {
+        const selectedCategories = $('input[type="checkbox"]:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        const minPrice = $('#minPrice').val();
+        const maxPrice = $('#maxPrice').val();
+
+        $('.product-card').each(function() {
+            const category = $(this).data('category');
+            const price = $(this).data('price');
+            
+            const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(category);
+            const priceMatch = (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
+
+            $(this).toggle(categoryMatch && priceMatch);
+        });
+    }
+});
+</script>

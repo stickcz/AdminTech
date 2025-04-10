@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cotización</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Crear Cotización</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para el formulario -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Formulario de Cotización</h3>
+                        </div>
+                        <form action="/create_quote" method="POST">
+                            <div class="card-body">
+                                <!-- Cliente -->
+                                <h3 class="mt-0">Cliente</h3>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Seleccionar Cliente Existente</label>
+                                            <select name="customer_id" class="form-control">
+                                                <option value="">Nuevo Cliente</option>
+                                                <% customers.forEach(customer => { %>
+                                                    <option value="<%= customer.id %>"><%= customer.name %> (<%= customer.phone %>)</option>
+                                                <% }) %>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>O crear nuevo cliente:</label>
+                                            <input type="text" class="form-control" name="new_customer_name" placeholder="Nombre" required>
+                                            <input type="text" class="form-control mt-2" name="new_customer_id_number" placeholder="Identificación (opcional)">
+                                            <input type="text" class="form-control mt-2" name="new_customer_phone" placeholder="Teléfono" required>
+                                            <input type="text" class="form-control mt-2" name="new_customer_address" placeholder="Dirección (opcional)">
+                                            <input type="email" class="form-control mt-2" name="new_customer_email" placeholder="Email (opcional)">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cámaras -->
+                                <h3>Cámaras</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Modelo</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% cameras.forEach(camera => { %>
+                                                <tr>
+                                                    <td><%= camera.model %></td>
+                                                    <td><%= camera.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="cameras" value="<%= camera.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cameras][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Grabadores -->
+                                <h3>Grabadores</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Modelo</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% recorders.forEach(recorder => { %>
+                                                <tr>
+                                                    <td><%= recorder.model %></td>
+                                                    <td><%= recorder.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="recorders" value="<%= recorder.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[recorders][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Instalación -->
+                                <h3>Instalación</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Condición</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% installation_costs.forEach(cost => { %>
+                                                <tr>
+                                                    <td><%= cost.condition %></td>
+                                                    <td><%= cost.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="installation_costs" value="<%= cost.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[installation_costs][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Accesorios -->
+                                <h3>Accesorios</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% accessories.forEach(accessory => { %>
+                                                <tr>
+                                                    <td><%= accessory.name %></td>
+                                                    <td><%= accessory.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="accessories" value="<%= accessory.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[accessories][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Cables -->
+                                <h3>Cables</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Precio por Metro</th>
+                                                <th>Seleccionar</th>
+                                                <th>Metros</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% cables.forEach(cable => { %>
+                                                <tr>
+                                                    <td><%= cable.type %></td>
+                                                    <td><%= cable.price_per_meter %>/m</td>
+                                                    <td>
+                                                        <input type="checkbox" name="cables" value="<%= cable.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cables][]" placeholder="Metros" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Protección de Cables -->
+                                <h3>Protección de Cables</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Precio por 2m</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad (2m)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% protection.forEach(prot => { %>
+                                                <tr>
+                                                    <td><%= prot.type %></td>
+                                                    <td><%= prot.price_per_2m %>/2m</td>
+                                                    <td>
+                                                        <input type="checkbox" name="cable_protection" value="<%= prot.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cable_protection][]" placeholder="Cantidad (2m)" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-file-invoice-dollar"></i> Crear Cotización
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>

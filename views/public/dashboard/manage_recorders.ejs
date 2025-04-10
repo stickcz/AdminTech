@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Grabadores</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- Tu CSS personalizado (si lo necesitas) -->
+    
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Grabadores</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar grabador -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nuevo Grabador</h3>
+                        </div>
+                        <form action="/manage_recorders/add" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Modelo</label>
+                                            <input type="text" class="form-control" name="model" placeholder="Modelo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Canales</label>
+                                            <input type="number" class="form-control" name="channels" placeholder="Canales" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Resolución</label>
+                                            <input type="text" class="form-control" name="resolution" placeholder="Resolución" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tecnología</label>
+                                            <input type="text" class="form-control" name="technology" placeholder="Tecnología" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Precio Aprox. (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio Aprox. (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de grabadores -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Grabadores Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Modelo</th>
+                                            <th>Canales</th>
+                                            <th>Resolución</th>
+                                            <th>Tecnología</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% recorders.forEach(recorder => { %>
+                                            <tr>
+                                                <td><%= recorder.model %></td>
+                                                <td class="numeric"><%= recorder.channels %></td>
+                                                <td><%= recorder.resolution %></td>
+                                                <td><%= recorder.technology %></td>
+                                                <td class="numeric"><%= recorder.price %></td>
+                                                <td>
+                                                    <form action="/manage_recorders/edit/<%= recorder.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_recorders/delete/<%= recorder.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>

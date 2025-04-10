@@ -1,0 +1,176 @@
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Productos</h1>
+
+    <!-- Cámaras -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Cámaras</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="camerasTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>MP</th>
+                            <th>Uso</th>
+                            <th>Material</th>
+                            <th>Tipo</th>
+                            <th>IR/Color</th>
+                            <th>Audio</th>
+                            <th>Rango IR</th>
+                            <th>Conexión</th>
+                            <th>AI</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cameras.forEach(camera => { %>
+                            <tr>
+                                <td><%= camera.model %></td>
+                                <td><%= camera.mp %></td>
+                                <td><%= camera.usage %></td>
+                                <td><%= camera.material %></td>
+                                <td><%= camera.type %></td>
+                                <td><%= camera.ir_color %></td>
+                                <td><%= camera.audio %></td>
+                                <td><%= camera.ir_range %></td>
+                                <td><%= camera.connection %></td>
+                                <td><%= camera.ai %></td>
+                                <td>$<%= camera.price %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grabadores -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Grabadores</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="recordersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>Canales</th>
+                            <th>Resolución</th>
+                            <th>Tecnología</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% recorders.forEach(recorder => { %>
+                            <tr>
+                                <td><%= recorder.model %></td>
+                                <td><%= recorder.channels %></td>
+                                <td><%= recorder.resolution %></td>
+                                <td><%= recorder.technology %></td>
+                                <td>$<%= recorder.price %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesorios -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Accesorios</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="accessoriesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% accessories.forEach(accessory => { %>
+                            <tr>
+                                <td><%= accessory.name %></td>
+                                <td>$<%= accessory.price %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cables -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Cables</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="cablesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Categoría</th>
+                            <th>Precio por Metro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cables.forEach(cable => { %>
+                            <tr>
+                                <td><%= cable.type %></td>
+                                <td><%= cable.category %></td>
+                                <td>$<%= cable.price_per_meter %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protección de Cables -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Protección de Cables</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="protectionsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Capacidad</th>
+                            <th>Precio por 2m</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% protections.forEach(protection => { %>
+                            <tr>
+                                <td><%= protection.type %></td>
+                                <td><%= protection.capacity %></td>
+                                <td>$<%= protection.price_per_2m %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#camerasTable').DataTable();
+    $('#recordersTable').DataTable();
+    $('#accessoriesTable').DataTable();
+    $('#cablesTable').DataTable();
+    $('#protectionsTable').DataTable();
+});
+</script> 

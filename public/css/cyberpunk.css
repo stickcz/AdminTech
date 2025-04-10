@@ -1,0 +1,187 @@
+/* Cyberpunk Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #000000, #0a0a2a);
+    color: #D3D3D3;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Efecto de estrellas */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(#ffffff 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0.1;
+    pointer-events: none;
+    animation: twinkle 3s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.2; }
+}
+
+/* Cards styling */
+.skill-card, .service-card, .project-card {
+    background: rgba(10, 10, 42, 0.3);
+    border: 1px solid #00D4FF;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px #00D4FF, 0 0 25px #FF00FF;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.skill-card:hover, .service-card:hover, .project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 25px #00D4FF, 0 0 35px #FF00FF;
+}
+
+.service-card h5, .skill-card h5 {
+    color: #00D4FF;
+    text-shadow: 0 0 10px #00D4FF;
+}
+
+.service-card p, .skill-card p {
+    color: #FF00FF;
+    text-shadow: 0 0 5px #FF00FF;
+}
+
+/* Progress bars */
+.progress {
+    background: rgba(10, 10, 42, 0.3);
+    border: 1px solid #00D4FF;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #00D4FF, #FF00FF);
+    box-shadow: 0 0 15px #00D4FF;
+}
+
+/* Hero section */
+.hero-section, .hero {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 255, 0.2));
+    border-bottom: 2px solid #00D4FF;
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+    color: white;
+    padding: 100px 0;
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.hero-section h1, .hero h1 {
+    color: #ffffff;
+    text-shadow: 0 0 10px #00D4FF, 0 0 20px #00D4FF;
+    font-size: 3.5rem;
+    font-weight: bold;
+}
+
+.hero-section p, .hero p {
+    color: #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+    font-size: 1.25rem;
+    opacity: 0.9;
+}
+
+/* Buttons */
+.btn-hero, .btn-primary, .btn-light {
+    background: transparent;
+    border: 2px solid #00D4FF;
+    color: #ffffff !important;
+    text-shadow: 0 0 5px #00D4FF;
+    box-shadow: 0 0 15px #00D4FF;
+    transition: all 0.3s ease;
+}
+
+.btn-hero:hover, .btn-primary:hover, .btn-light:hover {
+    border-color: #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+    box-shadow: 0 0 25px #FF00FF;
+    transform: translateY(-3px);
+    background: transparent;
+    color: #FF00FF !important;
+}
+
+/* Icons */
+.service-card i {
+    color: #00D4FF;
+    text-shadow: 0 0 10px #00D4FF;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover i {
+    color: #FF00FF;
+    text-shadow: 0 0 15px #FF00FF;
+}
+
+/* Navigation and Footer */
+.navbar {
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(10, 10, 42, 0.9));
+    border-bottom: 1px solid #00D4FF;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.navbar-brand, .navbar-nav .nav-link {
+    color: #ffffff !important;
+    text-shadow: 0 0 5px #00D4FF;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #FF00FF !important;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+footer {
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(10, 10, 42, 0.9));
+    border-top: 1px solid #FF00FF;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+/* Badges */
+.badge {
+    background: #00D4FF;
+    color: #ffffff;
+    text-shadow: 0 0 5px #ffffff;
+    box-shadow: 0 0 10px #00D4FF;
+}
+
+/* Section headers */
+h2, h3 {
+    color: #00D4FF;
+    text-shadow: 0 0 10px #00D4FF, 0 0 20px #00D4FF;
+}
+
+/* Contact section */
+#contacto {
+    background: rgba(10, 10, 42, 0.3);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid #00D4FF;
+    border-bottom: 1px solid #FF00FF;
+}
+
+/* Profile section */
+.profile-section {
+    background: rgba(10, 10, 42, 0.3);
+    backdrop-filter: blur(5px);
+    border: 1px solid #00D4FF;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* Lead text */
+.lead {
+    color: #FF00FF;
+    text-shadow: 0 0 5px #FF00FF;
+}
+
+/* Timeline */
+.timeline {
+    border-left: 2px solid #00D4FF;
+    box-shadow: 0 0 10px #00D4FF;
+}

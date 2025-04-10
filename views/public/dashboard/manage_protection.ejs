@@ -1,0 +1,136 @@
+<% title = 'Gestión de Protección de Cables' %>
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Gestión de Protección de Cables</h1>
+
+    <!-- Card para agregar protección -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Agregar Nueva Protección</h6>
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addProtectionModal">
+                <i class="fas fa-plus"></i> Agregar Protección
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="protectionsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Capacidad</th>
+                            <th>Precio por 2m</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% protections.forEach(protection => { %>
+                            <tr>
+                                <td><%= protection.type %></td>
+                                <td><%= protection.capacity %></td>
+                                <td class="numeric">$<%= protection.price_per_2m %></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="editProtection('<%= protection.id %>')"></button>
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form action="/manage_protection/delete/<%= protection.id %>" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar protección -->
+<div class="modal fade" id="addProtectionModal" tabindex="-1" role="dialog" aria-labelledby="addProtectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addProtectionModalLabel">Agregar Nueva Protección</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="/manage_protection/add" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <input type="text" class="form-control" name="type" placeholder="Tipo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacidad</label>
+                        <input type="text" class="form-control" name="capacity" placeholder="Capacidad" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio por 2m (COP)</label>
+                        <input type="number" class="form-control" name="price_per_2m" placeholder="Precio por 2m (COP)" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar protección -->
+<div class="modal fade" id="editProtectionModal" tabindex="-1" role="dialog" aria-labelledby="editProtectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProtectionModalLabel">Editar Protección</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editProtectionForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <input type="text" class="form-control" name="type" id="editType" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacidad</label>
+                        <input type="text" class="form-control" name="capacity" id="editCapacity" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio por 2m (COP)</label>
+                        <input type="number" class="form-control" name="price_per_2m" id="editPrice" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Page level plugins -->
+<script>
+$(document).ready(function() {
+    $('#protectionsTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        }
+    });
+});
+
+function editProtection(id) {
+    // Aquí deberías hacer una llamada AJAX para obtener los datos de la protección
+    // Por ahora, solo abrimos el modal
+    $('#editProtectionModal').modal('show');
+    $('#editProtectionForm').attr('action', '/manage_protection/update/' + id);
+}
+</script>

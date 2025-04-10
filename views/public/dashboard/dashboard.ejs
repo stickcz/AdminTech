@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TechSoluciones</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition sidebar-mini">
+    <div class="wrapper">
+        <!-- Main Sidebar Container -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <!-- Brand Logo -->
+            <a href="/dashboard" class="brand-link">
+                <img src="/images/logo.png" alt="TechSoluciones Logo" class="brand-image img-circle elevation-3">
+                <span class="brand-text font-weight-light">TechSoluciones</span>
+            </a>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Sidebar Menu -->
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                        <li class="nav-item">
+                            <!-- ... código existente ... -->
+                        </li>
+                        <li class="nav-item">
+                            <a href="/dashboard/manage_cameras" class="nav-link">
+                                <i class="nav-icon fas fa-camera"></i>
+                                <p>Gestionar Cámaras</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/dashboard/manage_recorders" class="nav-link">
+                                <i class="nav-icon fas fa-video"></i>
+                                <p>Gestionar Grabadores</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_installation" class="nav-link">
+                                <i class="nav-icon fas fa-tools"></i>
+                                <p>Gestionar Instalación</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_accessories" class="nav-link">
+                                <i class="nav-icon fas fa-plug"></i>
+                                <p>Gestionar Accesorios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_cables" class="nav-link">
+                                <i class="nav-icon fas fa-network-wired"></i>
+                                <p>Gestionar Cables</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_protection" class="nav-link">
+                                <i class="nav-icon fas fa-shield-alt"></i>
+                                <p>Protección de Cables</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/create_quote" class="nav-link">
+                                <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                                <p>Crear Cotización</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/quotes" class="nav-link">
+                                <i class="nav-icon fas fa-list"></i>
+                                <p>Ver Cotizaciones</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/company_info" class="nav-link">
+                                <i class="nav-icon fas fa-building"></i>
+                                <p>Info. Empresa</p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Logout Button -->
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="w-100">
+                        <a href="/logout" class="btn btn-danger btn-block">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Panel de Control</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Welcome Image -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <img src="/images/welcome.jpg" alt="Bienvenido" class="img-fluid" style="max-height: 400px;">
+                                    <h2 class="mt-4">¡Bienvenido al Sistema de Gestión!</h2>
+                                    <p class="lead">Selecciona una opción del menú para comenzar.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>

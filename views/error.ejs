@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+
+<div class="content-wrapper">
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h1 class="text-warning display-1">
+                                <%= typeof error !== 'undefined' ? error.status : 500 %>
+                            </h1>
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h3><%= typeof message !== 'undefined' ? message : 'Ocurrió un error inesperado' %></h3>
+                            <p class="text-muted">
+                                <%= typeof error !== 'undefined' && error.message ? error.message : 'Lo sentimos, algo salió mal.' %>
+                            </p>
+                            <a href="/dashboard" class="btn btn-primary">Volver al Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<%- include('partials/footer') %>

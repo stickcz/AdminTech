@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<div class="hold-transition login-page">
+    <div class="login-box">
+        <div class="login-logo">
+            <img src="/images/logo.png" alt="TechSoluciones Logo" class="brand-image img-circle elevation-3" style="max-width: 80px;">
+            <h1>TechSoluciones</h1>
+        </div>
+
+        <div class="card">
+            <div class="card-body login-card-body">
+                <p class="login-box-msg">Inicia sesión para comenzar</p>
+
+                <form action="/login" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="input-group mb-3">
+                        <input type="email" name="email" class="form-control" placeholder="Email" required>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+                        </div>
+                    </div>
+                </form>
+
+                <p class="mb-0 mt-3 text-center">
+                    ¿No tienes una cuenta? <a href="/register" class="text-center">Regístrate aquí</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

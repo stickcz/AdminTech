@@ -1,0 +1,217 @@
+<% title = 'Gestión de Productos de la Tienda' %>
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Gestión de Productos de la Tienda</h1>
+
+    <!-- Card para agregar producto -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Agregar Nuevo Producto</h6>
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addProductModal">
+                <i class="fas fa-plus"></i> Agregar Producto
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="productsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Descuento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% products.forEach(product => { %>
+                            <tr>
+                                <td><%= product.id %></td>
+                                <td><%= product.name %></td>
+                                <td><%= product.category %></td>
+                                <td class="numeric">$<%= product.price %></td>
+                                <td>
+                                    <span class="badge badge-<%= product.status === 'active' ? 'success' : 'danger' %>">
+                                        <%= product.status === 'active' ? 'Activo' : 'Inactivo' %>
+                                    </span>
+                                </td>
+                                <td><%= product.discount ? product.discount + '%' : '-' %></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="editProduct(<%= product.id %>)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form action="/dashboard/products/delete/<%= product.id %>" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar producto -->
+<div class="modal fade" id="addProductModal" tabindex="-1" role="dialog" aria-labelledby="addProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addProductModalLabel">Agregar Nuevo Producto</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="/dashboard/products/add" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio</label>
+                        <input type="number" class="form-control" name="price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>URL de la Imagen</label>
+                        <input type="url" class="form-control" name="image_url">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select class="form-control" name="category" required>
+                            <option value="cameras">Cámaras</option>
+                            <option value="recorders">Grabadores</option>
+                            <option value="accessories">Accesorios</option>
+                            <option value="cables">Cables</option>
+                            <option value="protection">Protección de Cables</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select class="form-control" name="status" required>
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (%)</label>
+                        <input type="number" class="form-control" name="discount" min="0" max="100">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar producto -->
+<div class="modal fade" id="editProductModal" tabindex="-1" role="dialog" aria-labelledby="editProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductModalLabel">Editar Producto</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editProductForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" name="name" id="editName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea class="form-control" name="description" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio</label>
+                        <input type="number" class="form-control" name="price" id="editPrice" required>
+                    </div>
+                    <div class="form-group">
+                        <label>URL de la Imagen</label>
+                        <input type="url" class="form-control" name="image_url" id="editImageUrl">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select class="form-control" name="category" id="editCategory" required>
+                            <option value="cameras">Cámaras</option>
+                            <option value="recorders">Grabadores</option>
+                            <option value="accessories">Accesorios</option>
+                            <option value="cables">Cables</option>
+                            <option value="protection">Protección de Cables</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select class="form-control" name="status" id="editStatus" required>
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (%)</label>
+                        <input type="number" class="form-control" name="discount" id="editDiscount" min="0" max="100">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Page level plugins -->
+<script>
+$(document).ready(function() {
+    $('#productsTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        }
+    });
+});
+
+function editProduct(id) {
+    // Hacer una llamada AJAX para obtener los datos del producto
+    $.ajax({
+        url: '/dashboard/products/get/' + id,
+        method: 'GET',
+        success: function(product) {
+            // Llenar el formulario con los datos del producto
+            $('#editName').val(product.name);
+            $('#editDescription').val(product.description);
+            $('#editPrice').val(product.price);
+            $('#editImageUrl').val(product.image);
+            $('#editCategory').val(product.category);
+            $('#editStatus').val(product.status);
+            $('#editDiscount').val(product.discount || '');
+            
+            // Actualizar la acción del formulario
+            $('#editProductForm').attr('action', '/dashboard/products/update/' + id);
+            
+            // Mostrar el modal
+            $('#editProductModal').modal('show');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al obtener los datos del producto:', error);
+            alert('Error al cargar los datos del producto. Por favor, intente nuevamente.');
+        }
+    });
+}
+</script>

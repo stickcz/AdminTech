@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechSoluciones Integrales - Tu Socio Tecnológico</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
+    <link rel="stylesheet" href="/css/cyberpunk.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <%- include('../partials/dashboard_nav_home') %>
+        <div id="perfil" class="profile-section">
+            <div class="container">
+                <div class="row mb-5">
+                    <div class="col-md-8 mx-auto text-center">
+                        <h2 class="mb-4">Perfil Profesional</h2>
+                        <p class="lead">Desarrollador Full Stack especializado en soluciones empresariales</p>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>Habilidades Técnicas</h3>
+                        <div class="skill-card">
+                            <h5>JavaScript/Node.js</h5>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-card">
+                            <h5>Express & APIs REST</h5>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-card">
+                            <h5>Bases de Datos (SQLite/MySQL)</h5>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h3>Proyectos Destacados</h3>
+                        <div class="card project-card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Sistema de Cotizaciones</h5>
+                                <p class="card-text">Sistema completo para gestión de cotizaciones en seguridad con
+                                    autenticación y panel administrativo.</p>
+                                <div class="tech-stack">
+                                    <span class="badge badge-primary">Node.js</span>
+                                    <span class="badge badge-info">Express</span>
+                                    <span class="badge badge-success">SQLite</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-5">
+                    <div class="col-md-12">
+                        <h3>Experiencia en Desarrollo</h3>
+                        <div class="timeline">
+                            <div class="skill-card">
+                                <h5>Proyectos Pro-bono</h5>
+                                <p>Desarrollo de soluciones para negocios locales y organizaciones sin fines de lucro.
+                                </p>
+                            </div>
+                            <div class="skill-card">
+                                <h5>Contribuciones Open Source</h5>
+                                <p>Participación activa en proyectos de código abierto y comunidades de desarrollo.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <h1>¡Hola! 👋 Bienvenido a TechSoluciones Integrales</h1>
+                <p>Tu socio tecnológico de confianza. Soluciones innovadoras con inteligencia artificial.</p>
+                <a href="/login" class="btn btn-light btn-lg mt-3">Accede al Dashboard</a>
+            </div>
+        </section>
+
+        <!-- Servicios -->
+        <section id="servicios" class="py-5">
+            <div class="container">
+                <h2 class="text-center mb-5">Nuestros Servicios</h2>
+                <div class="row">
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-mobile-alt fa-3x mb-3"></i>
+                            <h5 class="card-title">Celulares y Accesorios</h5>
+                            <p>Venta y reparación de celulares, smartwatches y accesorios.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-tv fa-3x mb-3"></i>
+                            <h5 class="card-title">Televisores y Entretenimiento</h5>
+                            <p>Instalación de TVs y sistemas de entretenimiento.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-camera fa-3x mb-3"></i>
+                            <h5 class="card-title">Seguridad y Domótica</h5>
+                            <p>Sistemas de seguridad y automatización del hogar.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-laptop fa-3x mb-3"></i>
+                            <h5 class="card-title">Computadores</h5>
+                            <p>Venta y mantenimiento de PCs y pantallas.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-cash-register fa-3x mb-3"></i>
+                            <h5 class="card-title">Sistemas POS</h5>
+                            <p>Implementación de sistemas de punto de venta.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-network-wired fa-3x mb-3"></i>
+                            <h5 class="card-title">Redes y Servidores</h5>
+                            <p>Diseño e instalación de redes y servidores.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-gamepad fa-3x mb-3"></i>
+                            <h5 class="card-title">Juegos Electrónicos</h5>
+                            <p>Soporte y fabricación de juegos electrónicos.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="service-card text-center">
+                            <i class="fas fa-microchip fa-3x mb-3"></i>
+                            <h5 class="card-title">Proyectos Electrónicos</h5>
+                            <p>Reparaciones y programación con Arduino/ESP32.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Perfil -->
+        <div id="perfil" class="profile-section py-5">
+            <div class="container">
+                <!-- ... mantener el contenido del perfil ... -->
+            </div>
+        </div>
+
+        <!-- Servicios Destacados -->
+        <section class="py-5" style="background: #f8f9fa;">
+            <div class="container">
+                <h2 class="text-center mb-4">Servicios Destacados</h2>
+                <div class="row">
+                    <!-- ... mantener las tarjetas de servicios destacados ... -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Contacto -->
+        <section id="contacto">
+            <div class="container">
+                <h2 class="text-center mb-4">Contáctanos</h2>
+                <p class="text-center">Email: info@techsoluciones.com | Teléfono: (123) 456-7890</p>
+                <p class="text-center">Estamos listos para ayudarte con cualquier consulta. 📲</p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center">
+            <p>© 2025 TechSoluciones Integrales. Todos los derechos reservados.</p>
+        </footer>
+
+        <!-- Scripts -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                // Smooth scrolling for anchor links
+                $('a[href^="#"]').on('click', function (e) {
+                    e.preventDefault();
+                    var target = $(this.hash);
+                    $('html, body').animate({
+                        scrollTop: target.offset().top - 70
+                    }, 800);
+                });
+
+                // Animate service cards on scroll
+                $(window).scroll(function () {
+                    $('.service-card').each(function () {
+                        var position = $(this).offset().top;
+                        var scroll = $(window).scrollTop();
+                        var windowHeight = $(window).height();
+                        if (scroll > position - windowHeight + 100) {
+                            $(this).addClass('animate__animated animate__fadeInUp');
+                        }
+                    });
+                });
+
+                // Add active class to navbar items on scroll
+                $(window).scroll(function () {
+                    var scrollDistance = $(window).scrollTop();
+                    $('section').each(function (i) {
+                        if ($(this).position().top <= scrollDistance + 100) {
+                            $('.navbar-nav a.active').removeClass('active');
+                            $('.navbar-nav a').eq(i).addClass('active');
+                        }
+                    });
+                });
+
+                // Initialize tooltips
+                $('[data-toggle="tooltip"]').tooltip();
+
+                // Progress bar animation
+                $('.progress-bar').each(function () {
+                    var width = $(this).css('width');
+                    $(this).css('width', '0');
+                    $(this).animate({
+                        width: width
+                    }, 1000);
+                });
+            });
+        </script>
+</body>
+
+</html>
+<% contentFor('scripts') %>
+    <script>
+        // Your custom scripts here
+    </script>
+
+    <!-- Before closing body tag -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize AOS
+            AOS.init({
+                duration: 1000,
+                once: true
+            });
+
+            // Smooth scroll effect
+            $('a[href^="#"]').on('click', function (e) {
+                e.preventDefault();
+                var target = $(this.hash);
+                $('html, body').animate({
+                    scrollTop: target.offset().top - 70
+                }, 800);
+            });
+
+            // Animate skill bars on scroll
+            function animateSkillBars() {
+                $('.skill-card').each(function () {
+                    var position = $(this).offset().top;
+                    var scroll = $(window).scrollTop();
+                    var windowHeight = $(window).height();
+                    if (scroll > position - windowHeight + 100) {
+                        $(this).find('.progress-bar').each(function () {
+                            var width = $(this).attr('style').match(/\d+/)[0];
+                            $(this).css('width', '0%').animate({
+                                width: width + '%'
+                            }, 1500);
+                        });
+                    }
+                });
+            }
+
+            // Service cards hover effect
+            $('.service-card').hover(
+                function () {
+                    $(this).find('i').addClass('animate__animated animate__rubberBand');
+                },
+                function () {
+                    $(this).find('i').removeClass('animate__animated animate__rubberBand');
+                }
+            );
+
+            // Project cards interaction
+            $('.project-card').hover(
+                function () {
+                    $(this).find('.tech-stack').addClass('animate__animated animate__fadeIn');
+                },
+                function () {
+                    $(this).find('.tech-stack').removeClass('animate__animated animate__fadeIn');
+                }
+            );
+
+            // Navbar scroll effect
+            var navbar = $('.navbar');
+            $(window).scroll(function () {
+                if ($(window).scrollTop() > 50) {
+                    navbar.addClass('navbar-scrolled').addClass('animate__animated animate__fadeInDown');
+                } else {
+                    navbar.removeClass('navbar-scrolled').removeClass('animate__animated animate__fadeInDown');
+                }
+            });
+
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
+
+            // Call animations on scroll
+            $(window).on('scroll', function () {
+                animateSkillBars();
+            });
+
+            // Initial animation call
+            animateSkillBars();
+        });
+    </script>

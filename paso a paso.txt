@@ -1,0 +1,79 @@
+1. Organización básica del proyecto
+1.1. Organizar estilos y scripts
+Crear una estructura clara para los archivos CSS y JS en la carpeta public:
+
+Descargar y usar localmente las dependencias de Bootstrap y AdminLTE:
+
+Descargar desde sus sitios oficiales.
+Actualizar las referencias en las vistas para que apunten a los archivos locales en lugar de CDNs.
+1.2. Organizar vistas
+Reorganizar las vistas en carpetas según su propósito:
+2. Funcionalidades básicas
+2.1. Autenticación de usuarios
+Implementar vistas para login, registro y logout:
+
+login.ejs: Formulario para iniciar sesión.
+register.ejs: Formulario para registrar nuevos usuarios.
+logout: Ruta para cerrar sesión.
+Crear rutas y controladores para manejar la autenticación:
+
+GET /login: Mostrar el formulario de login.
+POST /login: Validar credenciales y crear la sesión.
+GET /register: Mostrar el formulario de registro.
+POST /register: Crear un nuevo usuario en la base de datos.
+GET /logout: Destruir la sesión y redirigir al login.
+Proteger rutas privadas con un middleware:
+
+2.2. Roles de usuarios
+Agregar un campo role en la tabla users para manejar roles (admin, client, technician).
+
+Crear un middleware para verificar roles:
+
+Proteger rutas según el rol:
+
+3. Funcionalidades avanzadas
+3.1. Carrito de compras
+Manejar el carrito en la sesión:
+
+GET /cart: Mostrar los productos en el carrito.
+POST /cart/add: Agregar un producto al carrito.
+POST /cart/remove: Eliminar un producto del carrito.
+POST /cart/clear: Vaciar el carrito.
+Crear una vista para mostrar el carrito (cart.ejs).
+
+3.2. Suscripciones
+Agregar una tabla subscriptions para manejar diferentes tipos de suscripciones:
+
+Crear un middleware para verificar suscripciones:
+
+Proteger rutas según el tipo de suscripción:
+
+4. Seguridad
+4.1. Validación de datos
+Usar express-validator para validar entradas del usuario:
+
+Validar datos en rutas como login, registro y carrito.
+
+4.2. Protección de cabeceras
+Usar helmet para proteger las cabeceras HTTP:
+4.3. Encriptación de contraseñas
+Usar bcrypt para encriptar contraseñas:
+5. Preparación para producción
+5.1. Usar un administrador de procesos
+Instalar y configurar PM2:
+5.2. Configurar un proxy inverso
+Configurar Nginx para manejar solicitudes HTTP/HTTPS y servir archivos estáticos.
+5.3. Monitoreo
+Usar herramientas como PM2 monit o servicios externos como New Relic para monitorear el rendimiento.
+6. Opcional: Integración con pagos
+Usar Stripe o PayPal para manejar pagos de suscripciones o compras.
+Crear rutas para procesar pagos y activar suscripciones después de un pago exitoso.
+Resumen
+Este es el flujo completo de tareas para tu proyecto:
+
+Organizar estilos, scripts y vistas.
+Implementar autenticación y roles de usuarios.
+Crear funcionalidades avanzadas como carrito de compras y suscripciones.
+Asegurar la aplicación con validaciones, encriptación y protección de cabeceras.
+Preparar el proyecto para producción con PM2, Nginx y monitoreo.
+(Opcional) Integrar pagos para suscripciones o compras.

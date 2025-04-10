@@ -1,0 +1,145 @@
+<style>
+        .content-wrapper, body, html {
+            min-height: 10px;
+        }
+    </style>
+
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Gestionar Cámaras</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar cámara -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nueva Cámara</h3>
+                        </div>
+                        <form action="/dashboard/cameras/add" method="POST">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Modelo</label>
+                                            <input type="text" class="form-control" name="model" placeholder="Modelo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>MP</label>
+                                            <input type="number" class="form-control" name="mp" placeholder="MP" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Uso</label>
+                                            <input type="text" class="form-control" name="usage" placeholder="Interior/Exterior" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Material</label>
+                                            <input type="text" class="form-control" name="material" placeholder="Material" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Tipo</label>
+                                            <input type="text" class="form-control" name="type" placeholder="Bala/Domo" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>IR/Color</label>
+                                            <input type="text" class="form-control" name="ir_color" placeholder="IR/Color" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Audio</label>
+                                            <input type="text" class="form-control" name="audio" placeholder="Sí/No" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Alcance IR (m)</label>
+                                            <input type="number" class="form-control" name="ir_range" placeholder="Alcance IR (m)" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Conexión</label>
+                                            <input type="text" class="form-control" name="connection" placeholder="IP/BNC" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>IA</label>
+                                            <input type="text" class="form-control" name="ai" placeholder="Sí/No o descripción" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Precio Aprox. (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio Aprox. (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de cámaras -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Lista de Cámaras</h3>
+                        </div>
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>Modelo</th>
+                                        <th>MP</th>
+                                        <th>Uso</th>
+                                        <th>Tipo</th>
+                                        <th>Precio</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (cameras && cameras.length > 0) { %>
+                                        <% cameras.forEach(camera => { %>
+                                            <tr>
+                                                <td><%= camera.model %></td>
+                                                <td><%= camera.mp %></td>
+                                                <td><%= camera.usage %></td>
+                                                <td><%= camera.type %></td>
+                                                <td>$<%= camera.price %></td>
+                                                <td>
+                                                    <a href="/dashboard/cameras/edit/<%= camera.id %>" class="btn btn-info btn-sm">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="/dashboard/cameras/delete/<%= camera.id %>" class="btn btn-danger btn-sm">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </td>
+                                            <% }); %>
+                                        <% } else { %>
+                                            <tr>
+                                                <td colspan="6" class="text-center">No hay cámaras registradas</td>
+                                            </tr>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>

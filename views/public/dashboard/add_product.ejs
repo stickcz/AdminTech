@@ -1,0 +1,65 @@
+<!-- views/add_product.ejs -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Producto</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    
+    <div class="container mt-4">
+        <h2>Agregar Nuevo Producto</h2>
+        <% if (message) { %>
+            <div class="alert alert-danger"><%= message %></div>
+        <% } %>
+        <form action="/dashboard/products/add" method="POST">
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea name="description" class="form-control" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Precio</label>
+                <input type="number" step="0.01" name="price" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Imagen (URL)</label>
+                <input type="text" name="image" class="form-control" placeholder="/img/product.jpg">
+            </div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select name="category" class="form-control" required>
+                    <option value="Smartphones">Smartphones</option>
+                    <option value="Seguridad">Seguridad</option>
+                    <option value="Computadores">Computadores</option>
+                    <option value="Accesorios">Accesorios</option>
+                    <option value="Sistemas POS">Sistemas POS</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select name="status" class="form-control" required>
+                    <option value="available">Disponible</option>
+                    <option value="coming soon">Próximamente</option>
+                    <option value="sold out">Agotado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descuento (opcional)</label>
+                <input type="text" name="discount" class="form-control" placeholder="Ej. 50% OFF">
+            </div>
+            <button type="submit" class="btn btn-primary">Agregar</button>
+        </form>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

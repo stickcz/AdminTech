@@ -1,0 +1,412 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+    color: #D3D3D3;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Fondo con partículas brillantes */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><circle cx="10" cy="10" r="1" fill="white" opacity="0.3"/><circle cx="50" cy="50" r="1" fill="white" opacity="0.3"/><circle cx="90" cy="90" r="1" fill="white" opacity="0.3"/><circle cx="150" cy="150" r="1" fill="white" opacity="0.3"/><circle cx="200" cy="200" r="1" fill="white" opacity="0.3"/></svg>') repeat;
+    z-index: -1;
+    animation: twinkle 5s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: linear-gradient(90deg, #00D4FF, #FF00FF);
+    padding: 15px 0;
+    z-index: 1000;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    color: white;
+    text-decoration: none;
+    text-shadow: 0 0 10px #00D4FF;
+}
+
+.navbar-menu {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.navbar-menu li a {
+    color: white;
+    text-decoration: none;
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px #00D4FF;
+    transition: color 0.3s;
+}
+
+.navbar-menu li a:hover {
+    color: #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+/* Hero Section */
+.hero-section {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, #00D4FF, #FF00FF);
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+}
+
+.hero-section h1 {
+    font-size: 3.5rem;
+    color: white;
+    text-shadow: 0 0 10px #00D4FF, 0 0 20px #00D4FF;
+    margin-bottom: 20px;
+}
+
+.hero-section p {
+    font-size: 1.25rem;
+    color: white;
+    text-shadow: 0 0 5px #FF00FF;
+    margin-bottom: 30px;
+}
+
+.btn-hero {
+    display: inline-block;
+    padding: 12px 30px;
+    background: transparent;
+    border: 2px solid #00D4FF;
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    text-shadow: 0 0 5px #00D4FF;
+    transition: all 0.3s;
+}
+
+.btn-hero:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 15px #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+/* Secciones Generales */
+section {
+    padding: 80px 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+h2 {
+    font-size: 2.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 10px #00D4FF;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #FF00FF;
+    text-shadow: 0 0 5px #FF00FF;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+/* Servicios */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.service-card {
+    background: transparent;
+    border: 2px solid #00D4FF;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s;
+    box-shadow: 0 0 10px #00D4FF;
+}
+
+.service-card:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 20px #FF00FF;
+    transform: translateY(-10px);
+}
+
+.service-card i {
+    font-size: 2.5rem;
+    color: #00D4FF;
+    margin-bottom: 20px;
+    transition: color 0.3s;
+}
+
+.service-card:hover i {
+    color: #FF00FF;
+}
+
+.service-card h3 {
+    font-size: 1.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 5px #00D4FF;
+    margin-bottom: 15px;
+}
+
+.service-card p {
+    color: #FF00FF;
+    text-shadow: 0 0 3px #FF00FF;
+}
+
+/* Portafolio */
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.portfolio-card {
+    background: transparent;
+    border: 2px solid #00D4FF;
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.3s;
+    box-shadow: 0 0 10px #00D4FF;
+}
+
+.portfolio-card:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 20px #FF00FF;
+    transform: translateY(-10px);
+}
+
+.portfolio-card h3 {
+    font-size: 1.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 5px #00D4FF;
+    margin-bottom: 10px;
+}
+
+.portfolio-card p {
+    color: #FF00FF;
+    text-shadow: 0 0 3px #FF00FF;
+    margin-bottom: 15px;
+}
+
+.tech-stack span {
+    display: inline-block;
+    background: #00D4FF;
+    color: #FF00FF;
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-right: 5px;
+    font-size: 0.85rem;
+    box-shadow: 0 0 5px #00D4FF;
+}
+
+/* Blog */
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.blog-card {
+    background: transparent;
+    border: 2px solid #00D4FF;
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.3s;
+    box-shadow: 0 0 10px #00D4FF;
+}
+
+.blog-card:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 20px #FF00FF;
+    transform: translateY(-10px);
+}
+
+.blog-card h3 {
+    font-size: 1.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 5px #00D4FF;
+    margin-bottom: 10px;
+}
+
+.blog-card p {
+    color: #FF00FF;
+    text-shadow: 0 0 3px #FF00FF;
+    margin-bottom: 15px;
+}
+
+.read-more {
+    color: #00D4FF;
+    text-decoration: none;
+    text-shadow: 0 0 5px #00D4FF;
+}
+
+.read-more:hover {
+    color: #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+/* Equipo */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.team-card {
+    background: transparent;
+    border: 2px solid #00D4FF;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+    box-shadow: 0 0 10px #00D4FF;
+}
+
+.team-card:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 20px #FF00FF;
+    transform: translateY(-10px);
+}
+
+.team-card h3 {
+    font-size: 1.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 5px #00D4FF;
+    margin-bottom: 10px;
+}
+
+.team-card p {
+    color: #FF00FF;
+    text-shadow: 0 0 3px #FF00FF;
+}
+
+/* Contacto */
+.contact-form {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.contact-form input,
+.contact-form textarea {
+    padding: 15px;
+    background: transparent;
+    border: 2px solid #00D4FF;
+    border-radius: 5px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+    border-color: #FF00FF;
+    box-shadow: 0 0 10px #FF00FF;
+}
+
+.contact-form textarea {
+    resize: none;
+    height: 150px;
+}
+
+.btn-submit {
+    padding: 12px;
+    background: transparent;
+    border: 2px solid #00D4FF;
+    color: white;
+    text-shadow: 0 0 5px #00D4FF;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-submit:hover {
+    border-color: #FF00FF;
+    box-shadow: 0 0 15px #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+/* Footer */
+.footer {
+    background: linear-gradient(90deg, #00D4FF, #FF00FF);
+    padding: 30px 0;
+    text-align: center;
+}
+
+.footer p {
+    color: white;
+    text-shadow: 0 0 5px #00D4FF;
+}
+
+.social-links a {
+    color: white;
+    font-size: 1.5rem;
+    margin: 0 10px;
+    text-shadow: 0 0 5px #00D4FF;
+    transition: color 0.3s;
+}
+
+.social-links a:hover {
+    color: #FF00FF;
+    text-shadow: 0 0 10px #FF00FF;
+}
+
+.split-section {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.split-section.animate {
+    animation: fadeInUp 1s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

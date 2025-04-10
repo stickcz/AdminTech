@@ -1,0 +1,55 @@
+<!-- views/quotes_list.ejs -->
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Lista de Cotizaciones</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Cotizaciones</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="quotesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Número de Cotización</th>
+                            <th>Nombre del Cliente</th>
+                            <th>Fecha de Creación</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (quotes && quotes.length > 0) { %>
+                            <% quotes.forEach(quote => { %>
+                                <tr>
+                                    <td class="numeric"><%= quote.id %></td>
+                                    <td><%= quote.name %></td>
+                                    <td><%= quote.date %></td>
+                                    <td>
+                                        <a href="/quote/<%= quote.id %>" target="_blank" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Ver Detalle
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="4" class="text-center">No hay cotizaciones registradas.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="/dashboard" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#quotesTable').DataTable();
+});
+</script>

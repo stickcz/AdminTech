@@ -1,0 +1,3783 @@
+# Proyecto Completo - Generado el Fri Mar 14 03:39:42 2025
+# Estructura y contenido de archivos clave del proyecto (sin bases de datos ni node_modules)
+
+# Descripción de rutas y archivos relevantes:
+- app.js: Archivo principal de la aplicación Express
+- config/database.js: Configuración de la base de datos SQLite
+- config/passport.js: Configuración de autenticación con Passport
+- routes/public.js: Rutas públicas (ej. /shop, /)
+- routes/dashboard.js: Rutas del dashboard (ej. /dashboard/products)
+- controllers/publicController.js: Controladores para rutas públicas
+- controllers/productController.js: Controladores para gestión de productos
+- views/index.ejs: Vista principal (home)
+- views/shop.ejs: Vista de la tienda
+- views/dashboard.ejs: Vista del dashboard
+- views/dashboard_products.ejs: Vista de lista de productos
+- views/add_product.ejs: Vista para agregar productos
+- views/edit_product.ejs: Vista para editar productos
+- package.json: Configuración de dependencias y scripts
+
+
+================================================================================
+# Archivo: app.js
+# Descripción: Archivo principal de la aplicación Express
+================================================================================
+
+// app.js
+const express = require('express');
+const path = require('path');
+const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
+const passport = require('passport');
+const configurePassport = require('./config/passport');
+const expressLayouts = require('express-ejs-layouts'); // Importar express-ejs-layouts
+
+const app = express();
+
+// Configuración de Express
+app.set('view engine', 'ejs');
+app.use(expressLayouts); // Usar express-ejs-layouts
+app.set('layout', 'partials/layout'); // Definir el layout por defecto (opcional)
+app.use(express.static('public'));
+app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
+app.use(express.urlencoded({ extended: true }));
+
+// Configuración de sesiones
+require('dotenv').config();
+app.use(session({
+    store: new SQLiteStore({ db: 'sessions.db', dir: './' }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 horas
+}));
+
+// Inicializar Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Configurar Passport
+configurePassport(passport);
+
+// Middleware de manejo de errores global
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).render('error', { message: 'Algo salió mal. Inténtalo de nuevo más tarde.' });
+});
+
+// Importar rutas
+const publicRoutes = require('./routes/public');
+const authRoutes = require('./routes/auth');
+const dashboardRoutes = require('./routes/dashboard');
+const quoteRoutes = require('./routes/quote');
+
+// Usar rutas
+app.use('/', publicRoutes);
+app.use('/', authRoutes);
+app.use('/', dashboardRoutes);
+app.use('/', quoteRoutes);
+
+// Vista de error
+app.get('/error', (req, res) => {
+    res.render('error', { message: req.query.message || 'Error desconocido' });
+});
+
+// Iniciar servidor
+app.listen(3000, () => {
+    console.log('Servidor corriendo en http://localhost:3000');
+});
+
+================================================================================
+# Archivo: config\passport.js
+================================================================================
+
+// config/passport.js
+const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcryptjs');
+const db = require('./database');
+
+module.exports = (passport) => {
+    passport.use(
+        new LocalStrategy((username, password, done) => {
+            db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
+                if (err) return done(err);
+                if (!user) return done(null, false, { message: 'Usuario no encontrado' });
+                if (!bcrypt.compareSync(password, user.password)) return done(null, false, { message: 'Contraseña incorrecta' });
+                return done(null, user);
+            });
+        })
+    );
+
+    passport.serializeUser((user, done) => {
+        done(null, user.id);
+    });
+
+    passport.deserializeUser((id, done) => {
+        db.get('SELECT * FROM users WHERE id = ?', [id], (err, user) => {
+            done(err, user);
+        });
+    });
+};
+
+================================================================================
+# Archivo: controllers\authController.js
+================================================================================
+
+// controllers/authController.js
+const bcrypt = require('bcryptjs');
+const db = require('../config/database');
+
+exports.getLogin = (req, res) => {
+    res.render('login', { message: req.session.messages || null });
+};
+
+exports.getRegister = (req, res) => {
+    res.render('register', { message: null });
+};
+
+exports.postRegister = async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.render('register', { message: 'Todos los campos son obligatorios' });
+    }
+    db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
+        if (err) throw err;
+        if (row) {
+            return res.render('register', { message: 'El usuario ya existe' });
+        }
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], (err) => {
+            if (err) throw err;
+            res.redirect('/login');
+        });
+    });
+};
+
+exports.logout = (req, res) => {
+    req.logout((err) => {
+        if (err) return next(err);
+        res.redirect('/');
+    });
+};
+
+
+================================================================================
+# Archivo: controllers\dashboardController.js
+================================================================================
+
+const Camera = require('../models/camera');
+const Recorder = require('../models/recorder');
+const InstallationCost = require('../models/installation_cost');
+const Accessory = require('../models/accessory');
+const Cable = require('../models/cable');
+const CableProtection = require('../models/cable_protection');
+const CompanyInfo = require('../models/company');
+
+exports.getDashboard = (req, res) => {
+    res.render('dashboard', {
+        title: 'Dashboard' // Pasar el título explícitamente
+    });
+};
+
+exports.getManageCameras = (req, res, next) => {
+    Camera.getAll((err, cameras) => {
+        if (err) return next(err);
+        res.render('manage_cameras', { title: 'Gestionar Cámaras', cameras: cameras || [] });
+    });
+};
+
+exports.addCamera = (req, res, next) => {
+    const { model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price } = req.body;
+    const camera = new Camera(model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price);
+    camera.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_cameras');
+    });
+};
+
+exports.editCamera = (req, res, next) => {
+    const id = req.params.id;
+    Camera.getById(id, (err, camera) => {
+        if (err) return next(err);
+        if (!camera) return res.status(404).render('error', { title: 'Error', message: 'Cámara no encontrada' });
+        res.render('edit_camera', { title: 'Editar Cámara', camera });
+    });
+};
+
+exports.updateCamera = (req, res, next) => {
+    const id = req.params.id;
+    const { model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price } = req.body;
+    const camera = new Camera(model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price);
+    camera.update(id, (err) => {
+        if (err) return next(err);
+        res.redirect('/manage_cameras');
+    });
+};
+
+exports.deleteCamera = (req, res, next) => {
+    const id = req.params.id;
+    Camera.delete(id, (err) => {
+        if (err) return next(err);
+        res.redirect('/manage_cameras');
+    });
+};
+
+exports.getManageRecorders = (req, res, next) => {
+    Recorder.getAll((err, recorders) => {
+        if (err) return next(err);
+        res.render('manage_recorders', { title: 'Gestionar Grabadores', recorders: recorders || [] });
+    });
+};
+
+exports.addRecorder = (req, res, next) => {
+    const { model, channels, resolution, technology, price } = req.body;
+    const recorder = new Recorder(model, channels, resolution, technology, price);
+    recorder.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_recorders');
+    });
+};
+
+exports.getManageInstallation = (req, res, next) => {
+    InstallationCost.getAll((err, costs) => {
+        if (err) return next(err);
+        res.render('manage_installation', { title: 'Gestionar Costos de Instalación', costs: costs || [] });
+    });
+};
+
+exports.addInstallationCost = (req, res, next) => {
+    const { condition, price } = req.body;
+    const cost = new InstallationCost(condition, price);
+    cost.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_installation');
+    });
+};
+
+exports.getManageAccessories = (req, res, next) => {
+    Accessory.getAll((err, accessories) => {
+        if (err) return next(err);
+        res.render('manage_accessories', { title: 'Gestionar Accesorios', accessories: accessories || [] });
+    });
+};
+
+exports.addAccessory = (req, res, next) => {
+    const { name, price } = req.body;
+    const accessory = new Accessory(name, price);
+    accessory.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_accessories');
+    });
+};
+
+exports.getManageCables = (req, res, next) => {
+    Cable.getAll((err, cables) => {
+        if (err) return next(err);
+        res.render('manage_cables', { title: 'Gestionar Cables', cables: cables || [] });
+    });
+};
+
+exports.addCable = (req, res, next) => {
+    const { type, category, price_per_meter } = req.body;
+    const cable = new Cable(type, category, price_per_meter);
+    cable.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_cables');
+    });
+};
+
+exports.getManageProtection = (req, res, next) => {
+    CableProtection.getAll((err, protections) => {
+        if (err) return next(err);
+        res.render('manage_protection', { title: 'Gestionar Protección de Cables', protections: protections || [] });
+    });
+};
+
+exports.addProtection = (req, res, next) => {
+    const { type, capacity, price_per_2m } = req.body;
+    const protection = new CableProtection(type, capacity, price_per_2m);
+    protection.save((err) => {
+        if (err) return next(err);
+        res.redirect('/manage_protection');
+    });
+};
+
+exports.getCompanyInfo = (req, res, next) => {
+    CompanyInfo.get((err, company) => {
+        if (err) return next(err);
+        if (!company) return res.status(404).render('error', { title: 'Error', message: 'Información de la empresa no encontrada' });
+        res.render('company_info', { title: 'Editar Información de la Empresa', company: company[0] });
+    });
+};
+
+exports.updateCompanyInfo = (req, res, next) => {
+    const { city, date, name, phone, email, website } = req.body;
+    CompanyInfo.update(city, date, name, phone, email, website, (err) => {
+        if (err) return next(err);
+        res.redirect('/company_info');
+    });
+};
+
+================================================================================
+# Archivo: controllers\productController.js
+================================================================================
+
+const Product = require('../models/product');
+
+exports.getProducts = (req, res, next) => {
+    Product.getAll((err, products) => {
+        if (err) return next(err);
+        res.render('manage_products', { title: 'Gestionar Productos', products: products || [], message: null });
+    });
+};
+
+exports.addProduct = (req, res, next) => {
+    const { name, description, price, image, category, status, discount } = req.body;
+    const product = new Product(name, description, price, image, category, status, discount);
+    product.save((err) => {
+        if (err) return next(err);
+        res.redirect('/dashboard/products');
+    });
+};
+
+exports.getEditProduct = (req, res, next) => {
+    const id = req.params.id;
+    Product.getById(id, (err, product) => {
+        if (err) return next(err);
+        if (!product) return res.status(404).render('error', { title: 'Error', message: 'Producto no encontrado' });
+        res.render('edit_product', { title: 'Editar Producto', product });
+    });
+};
+
+exports.updateProduct = (req, res, next) => {
+    const id = req.params.id;
+    const { name, description, price, image, category, status, discount } = req.body;
+    const product = new Product(name, description, price, image, category, status, discount);
+    product.update(id, (err) => {
+        if (err) return next(err);
+        res.redirect('/dashboard/products');
+    });
+};
+
+exports.deleteProduct = (req, res, next) => {
+    const id = req.params.id;
+    Product.delete(id, (err) => {
+        if (err) return next(err);
+        res.redirect('/dashboard/products');
+    });
+};
+
+================================================================================
+# Archivo: controllers\publicController.js
+================================================================================
+
+// controllers/publicController.js
+const Product = require('../models/product');
+
+exports.getHome = (req, res) => {
+    res.render('index');
+};
+
+exports.getShop = (req, res) => {
+    Product.getAll((err, products) => {
+        if (err) throw err;
+        res.render('shop', { products: products || [] });
+    });
+};
+
+================================================================================
+# Archivo: controllers\quoteController.js
+================================================================================
+
+// controllers/quoteController.js
+const Camera = require('../models/camera');
+const Recorder = require('../models/recorder');
+const Installation = require('../models/installation');
+const Accessory = require('../models/accessory');
+const Cable = require('../models/cable');
+const Protection = require('../models/cable_protection');
+const Customer = require('../models/customer');
+const Quote = require('../models/quote');
+const Company = require('../models/company');
+
+exports.getCreateQuote = async (req, res) => {
+    try {
+        const [cameras, recorders, installation_costs, accessories, cables, protection, customers] = await Promise.all([
+            dbAll('SELECT * FROM cameras'),
+            dbAll('SELECT * FROM recorders'),
+            dbAll('SELECT * FROM installation_costs'),
+            dbAll('SELECT * FROM accessories'),
+            dbAll('SELECT * FROM cables'),
+            dbAll('SELECT * FROM cable_protection'),
+            dbAll('SELECT * FROM customers')
+        ]);
+        res.render('create_quote', { cameras, recorders, installation_costs, accessories, cables, protection, customers });
+    } catch (err) {
+        throw err;
+    }
+};
+
+exports.postCreateQuote = (req, res) => {
+    const { customer_id, new_customer_name, new_customer_id_number, new_customer_phone, new_customer_address, new_customer_email,
+            cameras, recorders, installation_costs, accessories, cables, cable_protection, quantities } = req.body;
+    const date = new Date().toLocaleDateString('es-ES');
+
+    let finalCustomerId;
+    if (customer_id) {
+        finalCustomerId = customer_id;
+        createQuote(finalCustomerId);
+    } else {
+        const newCustomer = {
+            name: new_customer_name,
+            id_number: new_customer_id_number,
+            phone: new_customer_phone,
+            address: new_customer_address,
+            email: new_customer_email
+        };
+        Customer.create(newCustomer, function (err) {
+            if (err) throw err;
+            finalCustomerId = this.lastID;
+            createQuote(finalCustomerId);
+        });
+    }
+
+    function createQuote(customerId) {
+        const quote = { date, customer_id: customerId };
+        Quote.create(quote, function (err) {
+            if (err) throw err;
+            const quoteId = this.lastID;
+            const items = [];
+
+            const cameraIds = Array.isArray(cameras) ? cameras : cameras ? [cameras] : [];
+            const recorderIds = Array.isArray(recorders) ? recorders : recorders ? [recorders] : [];
+            const installationIds = Array.isArray(installation_costs) ? installation_costs : installation_costs ? [installation_costs] : [];
+            const accessoryIds = Array.isArray(accessories) ? accessories : accessories ? [accessories] : [];
+            const cableIds = Array.isArray(cables) ? cables : cables ? [cables] : [];
+            const protectionIds = Array.isArray(cable_protection) ? cable_protection : cable_protection ? [cable_protection] : [];
+
+            const cameraQuantities = Array.isArray(quantities?.cameras) ? quantities.cameras : [];
+            const recorderQuantities = Array.isArray(quantities?.recorders) ? quantities.recorders : [];
+            const installationQuantities = Array.isArray(quantities?.installation_costs) ? quantities.installation_costs : [];
+            const accessoryQuantities = Array.isArray(quantities?.accessories) ? quantities.accessories : [];
+            const cableQuantities = Array.isArray(quantities?.cables) ? quantities.cables : [];
+            const protectionQuantities = Array.isArray(quantities?.cable_protection) ? quantities.cable_protection : [];
+
+            cameraIds.forEach((id, i) => items.push([quoteId, 'camera', id, cameraQuantities[i] || 1]));
+            recorderIds.forEach((id, i) => items.push([quoteId, 'recorder', id, recorderQuantities[i] || 1]));
+            installationIds.forEach((id, i) => items.push([quoteId, 'installation', id, installationQuantities[i] || 1]));
+            accessoryIds.forEach((id, i) => items.push([quoteId, 'accessory', id, accessoryQuantities[i] || 1]));
+            cableIds.forEach((id, i) => items.push([quoteId, 'cable', id, cableQuantities[i] || 1]));
+            protectionIds.forEach((id, i) => items.push([quoteId, 'protection', id, protectionQuantities[i] || 1]));
+
+            if (items.length === 0) return res.status(400).send('Selecciona al menos un ítem');
+
+            Quote.addItems(items, (err) => {
+                if (err) throw err;
+                res.redirect(`/quote/${quoteId}`);
+            });
+        });
+    }
+};
+
+exports.getQuoteById = (req, res) => {
+    const quoteId = req.params.id;
+    Quote.getById(quoteId, (err, quote) => {
+        if (err || !quote) return res.status(404).send('Cotización no encontrada');
+        Quote.getItemsByQuoteId(quoteId, (err, items) => {
+            if (err) throw err;
+            Company.getById(1, (err, company) => {
+                if (err) throw err;
+                res.render('view_quote', { quote, items, company });
+            });
+        });
+    });
+};
+
+exports.getQuotes = (req, res) => {
+    Quote.getAll((err, quotes) => {
+        if (err) throw err;
+        res.render('quotes_list', { quotes: quotes || [] });
+    });
+};
+
+function dbAll(query) {
+    return new Promise((resolve, reject) => {
+        const db = require('../config/database');
+        db.all(query, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
+================================================================================
+# Archivo: middleware\auth.js
+================================================================================
+
+// middleware/auth.js
+exports.ensureAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) return next();
+    res.redirect('/login');
+};
+
+================================================================================
+# Archivo: models\accessory.js
+================================================================================
+
+// models/accessory.js
+const db = require('../config/database');
+
+const Accessory = {
+    getAll: (callback) => {
+        db.all('SELECT * FROM accessories', [], callback);
+    },
+    create: (accessory, callback) => {
+        const { name, price } = accessory;
+        db.run(
+            'INSERT INTO accessories (name, price) VALUES (?, ?)',
+            [name, price],
+            callback
+        );
+    }
+};
+
+module.exports = Accessory;
+
+================================================================================
+# Archivo: models\cable.js
+================================================================================
+
+// models/cable.js
+const db = require('../config/database');
+
+const Cable = {
+    getAll: (callback) => {
+        db.all('SELECT * FROM cables', [], callback);
+    },
+    create: (cable, callback) => {
+        const { type, category, price_per_meter } = cable;
+        db.run(
+            'INSERT INTO cables (type, category, price_per_meter) VALUES (?, ?, ?)',
+            [type, category, price_per_meter],
+            callback
+        );
+    }
+};
+
+module.exports = Cable;
+
+================================================================================
+# Archivo: models\cable_protection.js
+================================================================================
+
+// models/cable_protection.js
+const db = require('../config/database');
+
+class CableProtection {
+    constructor(type, capacity, price_per_2m) {
+        this.type = type;
+        this.capacity = capacity;
+        this.price_per_2m = price_per_2m;
+    }
+
+    static getAll(callback) {
+        db.all('SELECT * FROM cable_protection', [], callback);
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM cable_protection WHERE id = ?', [id], callback);
+    }
+
+    save(callback) {
+        db.run(
+            'INSERT INTO cable_protection (type, capacity, price_per_2m) VALUES (?, ?, ?)',
+            [this.type, this.capacity, this.price_per_2m],
+            callback
+        );
+    }
+
+    static update(id, type, capacity, price_per_2m, callback) {
+        db.run(
+            'UPDATE cable_protection SET type = ?, capacity = ?, price_per_2m = ? WHERE id = ?',
+            [type, capacity, price_per_2m, id],
+            callback
+        );
+    }
+
+    static delete(id, callback) {
+        db.run('DELETE FROM cable_protection WHERE id = ?', [id], callback);
+    }
+}
+
+module.exports = CableProtection;
+
+================================================================================
+# Archivo: models\camera.js
+================================================================================
+
+// models/camera.js
+const db = require('../config/database');
+
+class Camera {
+    constructor(model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price) {
+        this.model = model;
+        this.mp = mp;
+        this.usage = usage;
+        this.material = material;
+        this.type = type;
+        this.ir_color = ir_color;
+        this.audio = audio;
+        this.ir_range = ir_range;
+        this.connection = connection;
+        this.ai = ai;
+        this.price = price;
+    }
+
+    static getAll(callback) {
+        db.all('SELECT * FROM cameras', [], callback);
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM cameras WHERE id = ?', [id], callback);
+    }
+
+    save(callback) {
+        db.run(
+            'INSERT INTO cameras (model, mp, usage, material, type, ir_color, audio, ir_range, connection, ai, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [this.model, this.mp, this.usage, this.material, this.type, this.ir_color, this.audio, this.ir_range, this.connection, this.ai, this.price],
+            callback
+        );
+    }
+
+    update(id, callback) {
+        db.run(
+            'UPDATE cameras SET model = ?, mp = ?, usage = ?, material = ?, type = ?, ir_color = ?, audio = ?, ir_range = ?, connection = ?, ai = ?, price = ? WHERE id = ?',
+            [this.model, this.mp, this.usage, this.material, this.type, this.ir_color, this.audio, this.ir_range, this.connection, this.ai, this.price, id],
+            callback
+        );
+    }
+
+    static delete(id, callback) {
+        db.run('DELETE FROM cameras WHERE id = ?', [id], callback);
+    }
+}
+
+module.exports = Camera;
+
+================================================================================
+# Archivo: models\company.js
+================================================================================
+
+// models/company.js
+const db = require('../config/database');
+
+class Company {
+    constructor(city, date, name, phone, email, website) {
+        this.city = city;
+        this.date = date;
+        this.name = name;
+        this.phone = phone;
+        this.email = email;
+        this.website = website;
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM company_info WHERE id = ?', [id], callback);
+    }
+
+    static update(id, city, date, name, phone, email, website, callback) {
+        db.run(
+            'UPDATE company_info SET city = ?, date = ?, name = ?, phone = ?, email = ?, website = ? WHERE id = ?',
+            [city, date, name, phone, email, website, id],
+            callback
+        );
+    }
+}
+
+module.exports = Company;
+
+================================================================================
+# Archivo: models\customer.js
+================================================================================
+
+// models/customer.js
+const db = require('../config/database');
+
+const Customer = {
+    getAll: (callback) => {
+        db.all('SELECT * FROM customers', [], callback);
+    },
+    create: (customer, callback) => {
+        const { name, id_number, phone, address, email } = customer;
+        db.run(
+            'INSERT INTO customers (name, id_number, phone, address, email) VALUES (?, ?, ?, ?, ?)',
+            [name, id_number || null, phone, address || null, email || null],
+            callback
+        );
+    }
+};
+
+module.exports = Customer;
+
+================================================================================
+# Archivo: models\installation.js
+================================================================================
+
+// models/installation.js
+const db = require('../config/database');
+
+class Installation {
+    constructor(condition, price) {
+        this.condition = condition;
+        this.price = price;
+    }
+
+    static getAll(callback) {
+        db.all('SELECT * FROM installation_costs', [], callback);
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM installation_costs WHERE id = ?', [id], callback);
+    }
+
+    save(callback) {
+        db.run(
+            'INSERT INTO installation_costs (condition, price) VALUES (?, ?)',
+            [this.condition, this.price],
+            callback
+        );
+    }
+
+    static update(id, condition, price, callback) {
+        db.run(
+            'UPDATE installation_costs SET condition = ?, price = ? WHERE id = ?',
+            [condition, price, id],
+            callback
+        );
+    }
+
+    static delete(id, callback) {
+        db.run('DELETE FROM installation_costs WHERE id = ?', [id], callback);
+    }
+}
+
+module.exports = Installation;
+
+================================================================================
+# Archivo: models\installation_cost.js
+================================================================================
+
+// models/installation_cost.js
+const db = require('../config/database');
+
+class InstallationCost {
+    constructor(condition, price) {
+        this.condition = condition;
+        this.price = price;
+    }
+
+    static getAll(callback) {
+        db.all('SELECT * FROM installation_costs', [], callback);
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM installation_costs WHERE id = ?', [id], callback);
+    }
+
+    save(callback) {
+        db.run(
+            'INSERT INTO installation_costs (condition, price) VALUES (?, ?)',
+            [this.condition, this.price],
+            callback
+        );
+    }
+
+    static update(id, condition, price, callback) {
+        db.run(
+            'UPDATE installation_costs SET condition = ?, price = ? WHERE id = ?',
+            [condition, price, id],
+            callback
+        );
+    }
+
+    static delete(id, callback) {
+        db.run('DELETE FROM installation_costs WHERE id = ?', [id], callback);
+    }
+}
+
+module.exports = InstallationCost;
+
+================================================================================
+# Archivo: models\product.js
+================================================================================
+
+// models/product.js
+const sqlite3 = require('sqlite3').verbose();
+const db = require('../config/database');
+
+const Product = {
+    // Obtener todos los productos
+    getAll: (callback) => {
+        db.all('SELECT * FROM products', [], (err, rows) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, rows);
+            }
+        });
+    },
+
+    // Obtener un producto por ID
+    getById: (id, callback) => {
+        db.get('SELECT * FROM products WHERE id = ?', [id], (err, row) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, row);
+            }
+        });
+    },
+
+    // Crear un nuevo producto
+    create: (product, callback) => {
+        const { name, description, price, image, category, status, discount } = product;
+        db.run(
+            'INSERT INTO products (name, description, price, image, category, status, discount) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [name, description, price, image || null, category, status, discount || null],
+            (err) => {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null);
+                }
+            }
+        );
+    },
+
+    // Actualizar un producto
+    update: (id, product, callback) => {
+        const { name, description, price, image, category, status, discount } = product;
+        db.run(
+            'UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ?, status = ?, discount = ? WHERE id = ?',
+            [name, description, price, image || null, category, status, discount || null, id],
+            (err) => {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null);
+                }
+            }
+        );
+    },
+
+    // Eliminar un producto
+    delete: (id, callback) => {
+        db.run('DELETE FROM products WHERE id = ?', [id], (err) => {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null);
+            }
+        });
+    }
+};
+
+module.exports = Product;
+
+================================================================================
+# Archivo: models\protection.js
+================================================================================
+
+// models/protection.js
+const db = require('../config/database');
+
+const Protection = {
+    getAll: (callback) => {
+        db.all('SELECT * FROM cable_protection', [], callback);
+    },
+    create: (protection, callback) => {
+        const { type, capacity, price_per_2m } = protection;
+        db.run(
+            'INSERT INTO cable_protection (type, capacity, price_per_2m) VALUES (?, ?, ?)',
+            [type, capacity, price_per_2m],
+            callback
+        );
+    }
+};
+
+module.exports = Protection;
+
+================================================================================
+# Archivo: models\quote.js
+================================================================================
+
+// models/quote.js
+const db = require('../config/database');
+
+const Quote = {
+    getAll: (callback) => {
+        db.all(
+            `SELECT q.id, q.date, c.name 
+             FROM quotes q 
+             JOIN customers c ON q.customer_id = c.id 
+             ORDER BY q.id DESC`,
+            [],
+            callback
+        );
+    },
+    getById: (id, callback) => {
+        db.get('SELECT q.*, c.* FROM quotes q JOIN customers c ON q.customer_id = c.id WHERE q.id = ?', [id], callback);
+    },
+    getItemsByQuoteId: (quoteId, callback) => {
+        db.all(
+            `SELECT qi.item_type, qi.quantity, 
+                    c.model AS camera_model, c.price AS camera_price,
+                    r.model AS recorder_model, r.price AS recorder_price,
+                    ic.condition AS installation_condition, ic.price AS installation_price,
+                    a.name AS accessory_name, a.price AS accessory_price,
+                    cb.type AS cable_type, cb.price_per_meter AS cable_price,
+                    cp.type AS protection_type, cp.price_per_2m AS protection_price
+             FROM quote_items qi
+             LEFT JOIN cameras c ON qi.item_type = 'camera' AND qi.item_id = c.id
+             LEFT JOIN recorders r ON qi.item_type = 'recorder' AND qi.item_id = r.id
+             LEFT JOIN installation_costs ic ON qi.item_type = 'installation' AND qi.item_id = ic.id
+             LEFT JOIN accessories a ON qi.item_type = 'accessory' AND qi.item_id = a.id
+             LEFT JOIN cables cb ON qi.item_type = 'cable' AND qi.item_id = cb.id
+             LEFT JOIN cable_protection cp ON qi.item_type = 'protection' AND qi.item_id = cp.id
+             WHERE qi.quote_id = ?`,
+            [quoteId],
+            callback
+        );
+    },
+    create: (quote, callback) => {
+        const { date, customer_id } = quote;
+        db.run('INSERT INTO quotes (date, customer_id) VALUES (?, ?)', [date, customer_id], callback);
+    },
+    addItems: (items, callback) => {
+        db.run(
+            `INSERT INTO quote_items (quote_id, item_type, item_id, quantity) VALUES ${items.map(() => '(?, ?, ?, ?)').join(',')}`,
+            items.flat(),
+            callback
+        );
+    }
+};
+
+module.exports = Quote;
+
+================================================================================
+# Archivo: models\recorder.js
+================================================================================
+
+// models/recorder.js
+const db = require('../config/database');
+
+class Recorder {
+    constructor(model, channels, resolution, technology, price) {
+        this.model = model;
+        this.channels = channels;
+        this.resolution = resolution;
+        this.technology = technology;
+        this.price = price;
+    }
+
+    static getAll(callback) {
+        db.all('SELECT * FROM recorders', [], callback);
+    }
+
+    static getById(id, callback) {
+        db.get('SELECT * FROM recorders WHERE id = ?', [id], callback);
+    }
+
+    save(callback) {
+        db.run(
+            'INSERT INTO recorders (model, channels, resolution, technology, price) VALUES (?, ?, ?, ?, ?)',
+            [this.model, this.channels, this.resolution, this.technology, this.price],
+            callback
+        );
+    }
+
+    static update(id, model, channels, resolution, technology, price, callback) {
+        db.run(
+            'UPDATE recorders SET model = ?, channels = ?, resolution = ?, technology = ?, price = ? WHERE id = ?',
+            [model, channels, resolution, technology, price, id],
+            callback
+        );
+    }
+
+    static delete(id, callback) {
+        db.run('DELETE FROM recorders WHERE id = ?', [id], callback);
+    }
+}
+
+module.exports = Recorder;
+
+================================================================================
+# Archivo: routes\auth.js
+================================================================================
+
+// routes/auth.js
+const express = require('express');
+const router = express.Router();
+const passport = require('passport');
+const authController = require('../controllers/authController');
+
+router.get('/login', authController.getLogin);
+router.post('/login', passport.authenticate('local', {
+    successRedirect: '/dashboard',
+    failureRedirect: '/login',
+    failureMessage: true
+}));
+router.get('/register', authController.getRegister);
+router.post('/register', authController.postRegister);
+router.get('/logout', authController.logout);
+
+module.exports = router;
+
+================================================================================
+# Archivo: routes\dashboard.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const dashboardController = require('../controllers/dashboardController');
+
+router.get('/dashboard', dashboardController.getDashboard);
+router.get('/manage_cameras', dashboardController.getManageCameras);
+router.post('/manage_cameras/add', dashboardController.addCamera);
+router.get('/manage_cameras/edit/:id', dashboardController.editCamera);
+router.post('/manage_cameras/update/:id', dashboardController.updateCamera);
+router.get('/manage_cameras/delete/:id', dashboardController.deleteCamera);
+// ... otras rutas
+module.exports = router;
+
+================================================================================
+# Archivo: routes\product.js
+================================================================================
+
+const express = require('express');
+const router = express.Router();
+const productController = require('../controllers/productController');
+
+router.get('/dashboard/products', productController.getProducts);
+router.post('/dashboard/products/add', productController.addProduct);
+router.get('/dashboard/products/edit/:id', productController.getEditProduct);
+router.post('/dashboard/products/update/:id', productController.updateProduct);
+router.get('/dashboard/products/delete/:id', productController.deleteProduct);
+
+module.exports = router;
+
+================================================================================
+# Archivo: routes\public.js
+================================================================================
+
+// routes/public.js
+const express = require('express');
+const router = express.Router();
+const publicController = require('../controllers/publicController');
+
+router.get('/', publicController.getHome);
+router.get('/shop', publicController.getShop);
+
+module.exports = router;
+
+================================================================================
+# Archivo: routes\quote.js
+================================================================================
+
+// routes/quote.js
+const express = require('express');
+const router = express.Router();
+const quoteController = require('../controllers/quoteController');
+const { ensureAuthenticated } = require('../middleware/auth');
+
+router.get('/create_quote', ensureAuthenticated, quoteController.getCreateQuote);
+router.post('/create_quote', ensureAuthenticated, quoteController.postCreateQuote);
+router.get('/quote/:id', quoteController.getQuoteById);
+router.get('/quotes', ensureAuthenticated, quoteController.getQuotes);
+
+module.exports = router;
+
+================================================================================
+# Archivo: views\add_product.ejs
+================================================================================
+
+<!-- views/add_product.ejs -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Producto</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    
+    <div class="container mt-4">
+        <h2>Agregar Nuevo Producto</h2>
+        <% if (message) { %>
+            <div class="alert alert-danger"><%= message %></div>
+        <% } %>
+        <form action="/dashboard/products/add" method="POST">
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea name="description" class="form-control" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Precio</label>
+                <input type="number" step="0.01" name="price" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Imagen (URL)</label>
+                <input type="text" name="image" class="form-control" placeholder="/img/product.jpg">
+            </div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select name="category" class="form-control" required>
+                    <option value="Smartphones">Smartphones</option>
+                    <option value="Seguridad">Seguridad</option>
+                    <option value="Computadores">Computadores</option>
+                    <option value="Accesorios">Accesorios</option>
+                    <option value="Sistemas POS">Sistemas POS</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select name="status" class="form-control" required>
+                    <option value="available">Disponible</option>
+                    <option value="coming soon">Próximamente</option>
+                    <option value="sold out">Agotado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descuento (opcional)</label>
+                <input type="text" name="discount" class="form-control" placeholder="Ej. 50% OFF">
+            </div>
+            <button type="submit" class="btn btn-primary">Agregar</button>
+        </form>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\company_info.ejs
+================================================================================
+
+<!-- views/company_info.ejs -->
+<% layout('partials/layout') -%>
+<% title = 'Editar Información de la Empresa' %>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Editar Información de la Empresa</h3>
+    </div>
+    <form action="/company_info" method="POST">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Ciudad</label>
+                        <input type="text" class="form-control" name="city" value="<%= company.city %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="text" class="form-control" name="date" value="<%= company.date %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de la Empresa</label>
+                        <input type="text" class="form-control" name="name" value="<%= company.name %>" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" class="form-control" name="phone" value="<%= company.phone %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" class="form-control" name="email" value="<%= company.email %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Sitio Web</label>
+                        <input type="text" class="form-control" name="website" value="<%= company.website %>" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </form>
+</div>
+
+================================================================================
+# Archivo: views\create_quote.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cotización</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Crear Cotización</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para el formulario -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Formulario de Cotización</h3>
+                        </div>
+                        <form action="/create_quote" method="POST">
+                            <div class="card-body">
+                                <!-- Cliente -->
+                                <h3 class="mt-0">Cliente</h3>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Seleccionar Cliente Existente</label>
+                                            <select name="customer_id" class="form-control">
+                                                <option value="">Nuevo Cliente</option>
+                                                <% customers.forEach(customer => { %>
+                                                    <option value="<%= customer.id %>"><%= customer.name %> (<%= customer.phone %>)</option>
+                                                <% }) %>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>O crear nuevo cliente:</label>
+                                            <input type="text" class="form-control" name="new_customer_name" placeholder="Nombre" required>
+                                            <input type="text" class="form-control mt-2" name="new_customer_id_number" placeholder="Identificación (opcional)">
+                                            <input type="text" class="form-control mt-2" name="new_customer_phone" placeholder="Teléfono" required>
+                                            <input type="text" class="form-control mt-2" name="new_customer_address" placeholder="Dirección (opcional)">
+                                            <input type="email" class="form-control mt-2" name="new_customer_email" placeholder="Email (opcional)">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cámaras -->
+                                <h3>Cámaras</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Modelo</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% cameras.forEach(camera => { %>
+                                                <tr>
+                                                    <td><%= camera.model %></td>
+                                                    <td><%= camera.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="cameras" value="<%= camera.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cameras][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Grabadores -->
+                                <h3>Grabadores</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Modelo</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% recorders.forEach(recorder => { %>
+                                                <tr>
+                                                    <td><%= recorder.model %></td>
+                                                    <td><%= recorder.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="recorders" value="<%= recorder.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[recorders][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Instalación -->
+                                <h3>Instalación</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Condición</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% installation_costs.forEach(cost => { %>
+                                                <tr>
+                                                    <td><%= cost.condition %></td>
+                                                    <td><%= cost.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="installation_costs" value="<%= cost.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[installation_costs][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Accesorios -->
+                                <h3>Accesorios</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Precio</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% accessories.forEach(accessory => { %>
+                                                <tr>
+                                                    <td><%= accessory.name %></td>
+                                                    <td><%= accessory.price %></td>
+                                                    <td>
+                                                        <input type="checkbox" name="accessories" value="<%= accessory.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[accessories][]" placeholder="Cantidad" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Cables -->
+                                <h3>Cables</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Precio por Metro</th>
+                                                <th>Seleccionar</th>
+                                                <th>Metros</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% cables.forEach(cable => { %>
+                                                <tr>
+                                                    <td><%= cable.type %></td>
+                                                    <td><%= cable.price_per_meter %>/m</td>
+                                                    <td>
+                                                        <input type="checkbox" name="cables" value="<%= cable.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cables][]" placeholder="Metros" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Protección de Cables -->
+                                <h3>Protección de Cables</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <th>Precio por 2m</th>
+                                                <th>Seleccionar</th>
+                                                <th>Cantidad (2m)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% protection.forEach(prot => { %>
+                                                <tr>
+                                                    <td><%= prot.type %></td>
+                                                    <td><%= prot.price_per_2m %>/2m</td>
+                                                    <td>
+                                                        <input type="checkbox" name="cable_protection" value="<%= prot.id %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="quantities[cable_protection][]" placeholder="Cantidad (2m)" min="1">
+                                                    </td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-file-invoice-dollar"></i> Crear Cotización
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\dashboard.ejs
+================================================================================
+
+<!-- views/dashboard.ejs -->
+<% layout('partials/layout') -%>
+<% title = 'Dashboard' %>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Bienvenido al Dashboard de DPTECH</h3>
+            </div>
+            <div class="card-body">
+                <p>Selecciona una opción del menú lateral para gestionar cámaras, grabadores, cotizaciones, productos, o la información de la empresa.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+================================================================================
+# Archivo: views\dashboard_products.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Productos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    
+
+    <div class="container mt-4">
+        <h2>Gestión de Productos</h2>
+        <% if (message) { %>
+            <div class="alert alert-danger"><%= message %></div>
+        <% } %>
+        <a href="/dashboard/products/add" class="btn btn-primary mb-3">Agregar Producto</a>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                <% products.forEach(product => { %>
+                    <tr>
+                        <td><%= product.name %></td>
+                        <td>$<%= product.price %> USD</td>
+                        <td><%= product.category %></td>
+                        <td><%= product.status %></td>
+                        <td>
+                            <a href="/dashboard/products/edit/<%= product.id %>" class="btn btn-warning btn-sm">Editar</a>
+                            <a href="/dashboard/products/delete/<%= product.id %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que quieres eliminar?')">Eliminar</a>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\edit_product.ejs
+================================================================================
+
+<% layout('partials/layout') -%>
+<% title = 'Editar Producto' %>
+
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Editar Producto</h3>
+    </div>
+    <form action="/dashboard/products/update/<%= product.id %>" method="POST">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" name="name" value="<%= product.name %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea class="form-control" name="description" required><%= product.description %></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio (COP)</label>
+                        <input type="number" step="0.01" class="form-control" name="price" value="<%= product.price %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen (URL)</label>
+                        <input type="text" class="form-control" name="image" value="<%= product.image %>">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="category" class="form-control" required>
+                            <option value="Smartphones" <%= product.category === 'Smartphones' ? 'selected' : '' %>>Smartphones</option>
+                            <option value="Seguridad" <%= product.category === 'Seguridad' ? 'selected' : '' %>>Seguridad</option>
+                            <option value="Computadores" <%= product.category === 'Computadores' ? 'selected' : '' %>>Computadores</option>
+                            <option value="Accesorios" <%= product.category === 'Accesorios' ? 'selected' : '' %>>Accesorios</option>
+                            <option value="Sistemas POS" <%= product.category === 'Sistemas POS' ? 'selected' : '' %>>Sistemas POS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select name="status" class="form-control" required>
+                            <option value="available" <%= product.status === 'available' ? 'selected' : '' %>>Disponible</option>
+                            <option value="coming soon" <%= product.status === 'coming soon' ? 'selected' : '' %>>Próximamente</option>
+                            <option value="sold out" <%= product.status === 'sold out' ? 'selected' : '' %>>Agotado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (opcional)</label>
+                        <input type="text" class="form-control" name="discount" value="<%= product.discount %>">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+            <a href="/dashboard/products" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+================================================================================
+# Archivo: views\error.ejs
+================================================================================
+
+<!-- views/error.ejs -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="alert alert-danger text-center" role="alert">
+            <%= message %>
+        </div>
+        <a href="/" class="btn btn-primary mt-3">Volver al Inicio</a>
+    </div>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\index.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechSoluciones Integrales - Tu Socio Tecnológico</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #e6f0fa 0%, #d1e3f6 100%);
+            color: #333;
+        }
+        .hero {
+            background: linear-gradient(rgba(0, 123, 255, 0.7), rgba(0, 123, 255, 0.7)), url('https://via.placeholder.com/1500x500') no-repeat center center;
+            background-size: cover;
+            color: white;
+            padding: 120px 0;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .hero p {
+            font-size: 1.2rem;
+        }
+        .navbar {
+            background-color: #007bff;
+        }
+        .navbar a {
+            color: white !important;
+            font-weight: 500;
+        }
+        .navbar-toggler {
+            border: none;
+        }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 1%29' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+        }
+        .service-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .service-card i {
+            color: #007bff;
+        }
+        #servicios {
+            background: #fff;
+            padding: 60px 0;
+        }
+        #contacto {
+            background: #f8f9fa;
+            padding: 60px 0;
+        }
+        footer {
+            background: #1a1a2e;
+            color: white;
+            padding: 20px 0;
+        }
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background-color: #007bff;
+            }
+            .navbar-nav .nav-link {
+                padding: 10px 20px;
+            }
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .hero p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <%- include('partials/dashboard_nav_home') %>
+
+    <!-- Hero Section -->   
+    <section class="hero">
+        <div class="container">
+            <h1>¡Hola! 👋 Bienvenido a TechSoluciones Integrales</h1>
+            <p>Tu socio tecnológico de confianza. Soluciones innovadoras con inteligencia artificial.</p>
+            <a href="/login" class="btn btn-light btn-lg mt-3">Accede al Dashboard</a>
+        </div>
+    </section>
+
+    <!-- Servicios -->
+    <section id="servicios">
+        <div class="container">
+            <h2 class="text-center mb-5">Nuestros Servicios</h2>
+            <div class="row">
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-mobile-alt fa-3x mb-3"></i>
+                        <h5 class="card-title">Celulares y Accesorios</h5>
+                        <p>Venta y reparación de celulares, smartwatches y accesorios.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-tv fa-3x mb-3"></i>
+                        <h5 class="card-title">Televisores y Entretenimiento</h5>
+                        <p>Instalación de TVs y sistemas de entretenimiento.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-camera fa-3x mb-3"></i>
+                        <h5 class="card-title">Seguridad y Domótica</h5>
+                        <p>Sistemas de seguridad y automatización del hogar.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-laptop fa-3x mb-3"></i>
+                        <h5 class="card-title">Computadores</h5>
+                        <p>Venta y mantenimiento de PCs y pantallas.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-cash-register fa-3x mb-3"></i>
+                        <h5 class="card-title">Sistemas POS</h5>
+                        <p>Implementación de sistemas de punto de venta.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-network-wired fa-3x mb-3"></i>
+                        <h5 class="card-title">Redes y Servidores</h5>
+                        <p>Diseño e instalación de redes y servidores.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-gamepad fa-3x mb-3"></i>
+                        <h5 class="card-title">Juegos Electrónicos</h5>
+                        <p>Soporte y fabricación de juegos electrónicos.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="service-card text-center">
+                        <i class="fas fa-microchip fa-3x mb-3"></i>
+                        <h5 class="card-title">Proyectos Electrónicos</h5>
+                        <p>Reparaciones y programación con Arduino/ESP32.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- views/index.ejs (fragmento) -->
+<section id="servicios" class="py-5" style="background: #f8f9fa;">
+    <div class="container">
+        <h2 class="text-center mb-4">Nuestros Servicios</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-3">
+                    <i class="fas fa-tools fa-3x text-primary mb-3"></i>
+                    <h4>Instalación Profesional</h4>
+                    <p class="text-muted">Ofrecemos instalación de sistemas de seguridad y tecnología en un plazo de 48 horas, con garantía de 1 año. Incluye cableado y configuración.</p>
+                    <a href="/contacto" class="btn btn-outline-primary mt-2">Solicitar Cotización</a>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-3">
+                    <i class="fas fa-headset fa-3x text-primary mb-3"></i>
+                    <h4>Soporte Técnico 24/7</h4>
+                    <p class="text-muted">Asistencia técnica con técnicos certificados en CCTV y redes. Respuesta garantizada en menos de 4 horas.</p>
+                    <a href="/contacto" class="btn btn-outline-primary mt-2">Contactar Soporte</a>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-3">
+                    <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                    <h4>Cotizaciones Personalizadas</h4>
+                    <p class="text-muted">Creamos cotizaciones a medida para proyectos de seguridad y tecnología. Recibe tu propuesta en 24 horas.</p>
+                    <a href="/create_quote" class="btn btn-outline-primary mt-2">Crear Cotización</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- Contacto -->
+    <section id="contacto">
+        <div class="container">
+            <h2 class="text-center mb-4">Contáctanos</h2>
+            <p class="text-center">Email: info@techsoluciones.com | Teléfono: (123) 456-7890</p>
+            <p class="text-center">Estamos listos para ayudarte con cualquier consulta. 📲</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <p>© 2025 TechSoluciones Integrales. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_accessories.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Accesorios</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Accesorios</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar accesorio -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nuevo Accesorio</h3>
+                        </div>
+                        <form action="/manage_accessories" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Nombre</label>
+                                            <input type="text" class="form-control" name="name" placeholder="Nombre" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Precio (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de accesorios -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Accesorios Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% accessories.forEach(accessory => { %>
+                                            <tr>
+                                                <td><%= accessory.name %></td>
+                                                <td class="numeric"><%= accessory.price %></td>
+                                                <td>
+                                                    <form action="/manage_accessories/edit/<%= accessory.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_accessories/delete/<%= accessory.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_cables.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Cables</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Cables</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar cable -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nuevo Cable</h3>
+                        </div>
+                        <form action="/manage_cables" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tipo</label>
+                                            <input type="text" class="form-control" name="type" placeholder="Tipo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Categoría</label>
+                                            <input type="text" class="form-control" name="category" placeholder="Categoría" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Precio por Metro (COP)</label>
+                                            <input type="text" class="form-control" name="price_per_meter" placeholder="Precio por Metro (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de cables -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Cables Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Categoría</th>
+                                            <th>Precio por Metro</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% cables.forEach(cable => { %>
+                                            <tr>
+                                                <td><%= cable.type %></td>
+                                                <td><%= cable.category %></td>
+                                                <td class="numeric"><%= cable.price_per_meter %></td>
+                                                <td>
+                                                    <form action="/manage_cables/edit/<%= cable.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_cables/delete/<%= cable.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_cameras.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Cámaras</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <style>
+        .content-wrapper, body, html {
+            min-height: 10px;
+        }
+    </style>
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Cámaras</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar cámara -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nueva Cámara</h3>
+                        </div>
+                        <form action="/manage_cameras" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Modelo</label>
+                                            <input type="text" class="form-control" name="model" placeholder="Modelo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>MP</label>
+                                            <input type="number" class="form-control" name="mp" placeholder="MP" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Uso</label>
+                                            <input type="text" class="form-control" name="usage" placeholder="Interior/Exterior" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Material</label>
+                                            <input type="text" class="form-control" name="material" placeholder="Material" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Tipo</label>
+                                            <input type="text" class="form-control" name="type" placeholder="Bala/Domo" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>IR/Color</label>
+                                            <input type="text" class="form-control" name="ir_color" placeholder="IR/Color" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Audio</label>
+                                            <input type="text" class="form-control" name="audio" placeholder="Sí/No" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Alcance IR (m)</label>
+                                            <input type="number" class="form-control" name="ir_range" placeholder="Alcance IR (m)" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Conexión</label>
+                                            <input type="text" class="form-control" name="connection" placeholder="IP/BNC" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>IA</label>
+                                            <input type="text" class="form-control" name="ai" placeholder="Sí/No o descripción" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Precio Aprox. (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio Aprox. (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de cámaras -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Cámaras Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Modelo</th>
+                                            <th>MP</th>
+                                            <th>Uso</th>
+                                            <th>Material</th>
+                                            <th>Tipo</th>
+                                            <th>IR/Color</th>
+                                            <th>Audio</th>
+                                            <th>Alcance IR</th>
+                                            <th>Conexión</th>
+                                            <th>IA</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% cameras.forEach(camera => { %>
+                                            <tr>
+                                                <td><%= camera.model %></td>
+                                                <td class="numeric"><%= camera.mp %></td>
+                                                <td><%= camera.usage %></td>
+                                                <td><%= camera.material %></td>
+                                                <td><%= camera.type %></td>
+                                                <td><%= camera.ir_color %></td>
+                                                <td><%= camera.audio %></td>
+                                                <td class="numeric"><%= camera.ir_range %></td>
+                                                <td><%= camera.connection %></td>
+                                                <td><%= camera.ai %></td>
+                                                <td class="numeric"><%= camera.price %></td>
+                                                <td>
+                                                    <form action="/manage_cameras/edit/<%= camera.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_cameras/delete/<%= camera.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_installation.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Costos de Instalación</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Costos de Instalación</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar costo -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Costo de Instalación</h3>
+                        </div>
+                        <form action="/manage_installation" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Condición</label>
+                                            <input type="text" class="form-control" name="condition" placeholder="Condición" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Precio (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de costos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Costos Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Condición</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% installation_costs.forEach(cost => { %>
+                                            <tr>
+                                                <td><%= cost.condition %></td>
+                                                <td class="numeric"><%= cost.price %></td>
+                                                <td>
+                                                    <form action="/manage_installation/edit/<%= cost.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_installation/delete/<%= cost.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_products.ejs
+================================================================================
+
+<!-- views/manage_products.ejs -->
+<% layout('partials/layout') -%>
+<% title = 'Gestionar Productos' %>
+
+<!-- Card para agregar producto -->
+<div class="card card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Agregar Nuevo Producto</h3>
+    </div>
+    <form action="/dashboard/products/add" method="POST">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" name="name" placeholder="Nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea class="form-control" name="description" placeholder="Descripción" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio (COP)</label>
+                        <input type="number" step="0.01" class="form-control" name="price" placeholder="Precio" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen (URL)</label>
+                        <input type="text" class="form-control" name="image" placeholder="/img/product.jpg">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="category" class="form-control" required>
+                            <option value="Smartphones">Smartphones</option>
+                            <option value="Seguridad">Seguridad</option>
+                            <option value="Computadores">Computadores</option>
+                            <option value="Accesorios">Accesorios</option>
+                            <option value="Sistemas POS">Sistemas POS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select name="status" class="form-control" required>
+                            <option value="available">Disponible</option>
+                            <option value="coming soon">Próximamente</option>
+                            <option value="sold out">Agotado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento (opcional)</label>
+                        <input type="text" class="form-control" name="discount" placeholder="Ej. 50% OFF">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Agregar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Card para lista de productos -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Productos Existentes</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% products.forEach(product => { %>
+                        <tr>
+                            <td class="numeric"><%= product.id %></td>
+                            <td><%= product.name %></td>
+                            <td><%= product.category %></td>
+                            <td class="numeric"><%= product.price %></td>
+                            <td>
+                                <a href="/dashboard/products/edit/<%= product.id %>" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <form action="/dashboard/products/delete/<%= product.id %>" method="GET" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+================================================================================
+# Archivo: views\manage_protection.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Protección de Cables</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Protección de Cables</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar protección -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nueva Protección</h3>
+                        </div>
+                        <form action="/manage_protection" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tipo</label>
+                                            <input type="text" class="form-control" name="type" placeholder="Tipo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Capacidad</label>
+                                            <input type="text" class="form-control" name="capacity" placeholder="Capacidad" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Precio por 2m (COP)</label>
+                                            <input type="text" class="form-control" name="price_per_2m" placeholder="Precio por 2m (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de protecciones -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Protecciones Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Capacidad</th>
+                                            <th>Precio por 2m</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% cable_protection.forEach(protection => { %>
+                                            <tr>
+                                                <td><%= protection.type %></td>
+                                                <td><%= protection.capacity %></td>
+                                                <td class="numeric"><%= protection.price_per_2m %></td>
+                                                <td>
+                                                    <form action="/manage_protection/edit/<%= protection.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_protection/delete/<%= protection.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\manage_recorders.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Grabadores</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- Tu CSS personalizado (si lo necesitas) -->
+    
+</head>
+<body class="hold-transition layout-top-nav">
+    <div class="wrapper">
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1>Gestionar Grabadores</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="/" class="btn btn-primary float-sm-right">
+                                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Card para agregar grabador -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Agregar Nuevo Grabador</h3>
+                        </div>
+                        <form action="/manage_recorders" method="POST">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Modelo</label>
+                                            <input type="text" class="form-control" name="model" placeholder="Modelo" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Canales</label>
+                                            <input type="number" class="form-control" name="channels" placeholder="Canales" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Resolución</label>
+                                            <input type="text" class="form-control" name="resolution" placeholder="Resolución" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Tecnología</label>
+                                            <input type="text" class="form-control" name="technology" placeholder="Tecnología" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Precio Aprox. (COP)</label>
+                                            <input type="text" class="form-control" name="price" placeholder="Precio Aprox. (COP)" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Card para lista de grabadores -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Grabadores Existentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Modelo</th>
+                                            <th>Canales</th>
+                                            <th>Resolución</th>
+                                            <th>Tecnología</th>
+                                            <th>Precio</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% recorders.forEach(recorder => { %>
+                                            <tr>
+                                                <td><%= recorder.model %></td>
+                                                <td class="numeric"><%= recorder.channels %></td>
+                                                <td><%= recorder.resolution %></td>
+                                                <td><%= recorder.technology %></td>
+                                                <td class="numeric"><%= recorder.price %></td>
+                                                <td>
+                                                    <form action="/manage_recorders/edit/<%= recorder.id %>" method="GET" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-edit"></i> Editar
+                                                        </button>
+                                                    </form>
+                                                    <form action="/manage_recorders/delete/<%= recorder.id %>" method="POST" style="display:inline;">
+                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts requeridos por AdminLTE -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\prueba.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Gestión</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="vision-ui">
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <div class="sidenav">
+            <div class="sidenav-header">
+                <h2>Gestión</h2>
+            </div>
+            <ul class="sidenav-menu">
+                <li><a href="#" onclick="loadContent('/manage_cameras')">Gestionar Cámaras</a></li>
+                <li><a href="#" onclick="loadContent('/manage_recorders')">Gestionar Grabadores</a></li>
+                <li><a href="#" onclick="loadContent('/manage_installation')">Gestionar Costos de Instalación</a></li>
+                <li><a href="#" onclick="loadContent('/manage_accessories')">Gestionar Accesorios</a></li>
+                <li><a href="#" onclick="loadContent('/manage_cables')">Gestionar Cables</a></li>
+                <li><a href="#" onclick="loadContent('/manage_protection')">Gestionar Protección de Cables</a></li>
+                <li><a href="#" onclick="loadContent('/create_quote')">Crear Cotización</a></li>
+                <li><a href="#" onclick="loadContent('/quotes')">Ver Lista de Cotizaciones</a></li>
+                <li><a href="#" onclick="loadContent('/company_info')">Editar Información de la Empresa</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="navbar">
+                <h1>Dashboard de Gestión</h1>
+            </div>
+            <div class="content">
+                <iframe id="content-frame" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Función para cargar contenido en el iframe
+        function loadContent(url) {
+            const iframe = document.getElementById('content-frame');
+            iframe.src = url;
+            iframe.onload = function() {
+                // Ajusta la altura del iframe al tamaño del contenido
+                iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
+            };
+        }
+    
+        // Configuración del botón para colapsar el menú (sin cambios)
+        const sidenav = document.querySelector('.sidenav');
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = '☰';
+        toggleBtn.style.position = 'absolute';
+        toggleBtn.style.top = '20px';
+        toggleBtn.style.left = '260px';
+        toggleBtn.style.background = '#00ddeb';
+        toggleBtn.style.border = 'none';
+        toggleBtn.style.padding = '5px 10px';
+        toggleBtn.style.cursor = 'pointer';
+        document.body.appendChild(toggleBtn);
+    
+        toggleBtn.addEventListener('click', () => {
+            sidenav.classList.toggle('collapsed');
+            if (sidenav.classList.contains('collapsed')) {
+                sidenav.style.width = '60px';
+                sidenav.querySelectorAll('a').forEach(a => a.style.display = 'none');
+            } else {
+                sidenav.style.width = '250px';
+                sidenav.querySelectorAll('a').forEach(a => a.style.display = 'block');
+            }
+        });
+    </script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\quotes_list.ejs
+================================================================================
+
+<!-- views/quotes_list.ejs -->
+<% layout('partials/layout') -%>
+<% title = 'Lista de Cotizaciones' %>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Cotizaciones</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Número de Cotización</th>
+                        <th>Nombre del Cliente</th>
+                        <th>Fecha de Creación</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (quotes.length > 0) { %>
+                        <% quotes.forEach(quote => { %>
+                            <tr>
+                                <td class="numeric"><%= quote.id %></td>
+                                <td><%= quote.name %></td>
+                                <td><%= quote.date %></td>
+                                <td><a href="/quote/<%= quote.id %>" target="_blank">Ver Detalle</a></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="4" style="text-align: center;">No hay cotizaciones registradas.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a href="/dashboard" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+================================================================================
+# Archivo: views\register.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition login-page" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+    <div class="login-box">
+        <div class="login-logo">
+            <a href="#" style="color: #fff;"><b>DPTECH</b> Registro</a>
+        </div>
+        <div class="card">
+            <div class="card-body login-card-body">
+                <p class="login-box-msg">Regístrate para comenzar</p>
+                <% if (message) { %>
+                    <div class="alert alert-danger"><%= message %></div>
+                <% } %>
+                <form action="/register" method="POST">
+                    <div class="input-group mb-3">
+                        <input type="text" name="username" class="form-control" placeholder="Usuario" required>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-user"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <span class="fas fa-lock"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-block">Registrar</button>
+                        </div>
+                    </div>
+                </form>
+                <p class="mb-0 mt-3 text-center">
+                    <a href="/login" class="text-center">Ya tengo una cuenta</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\shop.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda - TechSoluciones Integrales</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #e6f0fa 0%, #d1e3f6 100%);
+            color: #333;
+        }
+        .navbar {
+            background-color: #007bff;
+        }
+        .navbar a {
+            color: white !important;
+            font-weight: 500;
+        }
+        .navbar-toggler {
+            border: none;
+        }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 1%29' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+        }
+        .sidebar {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .sidebar h5 {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .sidebar .form-check {
+            margin-bottom: 10px;
+        }
+        .color-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .search-bar .form-control {
+            border-radius: 20px 0 0 20px;
+        }
+        .search-bar .btn {
+            border-radius: 0 20px 20px 0;
+            background-color: #007bff;
+            color: white;
+        }
+        .sort-options {
+            margin-bottom: 20px;
+        }
+        .product-card {
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .product-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .product-card img {
+            max-height: 150px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+        .product-card .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+        }
+        .whatsapp-btn {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        .whatsapp-btn:hover {
+            background-color: #20c058;
+            color: white;
+        }
+        #tienda {
+            background: #fff;
+            padding: 40px 0;
+        }
+        footer {
+            background: #1a1a2e;
+            color: white;
+            padding: 20px 0;
+        }
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background-color: #007bff;
+            }
+            .navbar-nav .nav-link {
+                padding: 10px 20px;
+            }
+            .sidebar {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <%- include('partials/dashboard_nav_home') %>
+
+    <!-- Tienda -->
+    <section id="tienda">
+        <div class="container">
+            <h2 class="text-center mb-5">Nuestra Tienda</h2>
+            <div class="row">
+                <!-- Sidebar con filtros -->
+                <div class="col-lg-3 col-md-4">
+                    <div class="sidebar">
+                        <h5>Filtros</h5>
+                        <!-- Categorías -->
+                        <h6>Categorías</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cat-all">
+                            <label class="form-check-label" for="cat-all">Todas las categorías</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cat-smartphones">
+                            <label class="form-check-label" for="cat-smartphones">Smartphones</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cat-security">
+                            <label class="form-check-label" for="cat-security">Seguridad</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cat-computers">
+                            <label class="form-check-label" for="cat-computers">Computadores</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cat-accessories">
+                            <label class="form-check-label" for="cat-accessories">Accesorios</label>
+                        </div>
+
+                        <!-- Colores -->
+                        <h6 class="mt-4">Colores</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="color-black">
+                            <label class="form-check-label" for="color-black">
+                                <span class="color-circle" style="background: #000;"></span> Negro
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="color-blue">
+                            <label class="form-check-label" for="color-blue">
+                                <span class="color-circle" style="background: #007bff;"></span> Azul
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="color-white">
+                            <label class="form-check-label" for="color-white">
+                                <span class="color-circle" style="background: #fff; border: 1px solid #ccc;"></span> Blanco
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="color-red">
+                            <label class="form-check-label" for="color-red">
+                                <span class="color-circle" style="background: #dc3545;"></span> Rojo
+                            </label>
+                        </div>
+
+                        <!-- Rango de precios -->
+                        <h6 class="mt-4">Rango de Precios</h6>
+                        <input type="range" class="form-control-range" min="0" max="1000" value="500">
+                        <p class="mt-2">Hasta $500 USD</p>
+                    </div>
+                </div>
+
+                <!-- Productos -->
+                <div class="col-lg-9 col-md-8">
+                    <!-- Barra de búsqueda y ordenamiento -->
+                    <div class="search-bar row">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Buscar productos..." id="searchInput">
+                                <div class="input-group-append">
+                                    <button class="btn" type="button"><i class="fas fa-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <select class="form-control" id="sortOptions">
+                                <option value="price-asc">Ordenar por: Precio (menor a mayor)</option>
+                                <option value="price-desc">Ordenar por: Precio (mayor a menor)</option>
+                                <option value="name-asc">Ordenar por: Nombre (A-Z)</option>
+                                <option value="name-desc">Ordenar por: Nombre (Z-A)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Lista de productos -->
+                    <div class="row" id="productList">
+                        <% if (products && products.length > 0) { %>
+                            <% products.forEach(product => { %>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="product-card">
+                                        <% if (product.discount) { %>
+                                            <span class="badge badge-success"><%= product.discount %></span>
+                                        <% } else if (product.status === 'coming soon') { %>
+                                            <span class="badge badge-warning">Coming Soon</span>
+                                        <% } else if (product.status === 'sold out') { %>
+                                            <span class="badge badge-danger">Sold Out</span>
+                                        <% } %>
+                                        <img src="<%= product.image || 'https://via.placeholder.com/300x150' %>" alt="<%= product.name %>" class="img-fluid">
+                                        <h5 class="card-title"><%= product.name %></h5>
+                                        <p><%= product.description %></p>
+                                        <p class="font-weight-bold">$<%= product.price %> USD</p>
+                                        <a href="https://wa.me/1234567890?text=Hola,%20estoy%20interesado%20en%20<%= encodeURIComponent(product.name) %>.%20¿Me%20das%20más%20info?" target="_blank" class="whatsapp-btn">Consultar</a>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="col-12 text-center">
+                                <p>No hay productos disponibles.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <p>© 2025 TechSoluciones Integrales. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función para filtrar y ordenar productos (ejemplo básico)
+        $(document).ready(function() {
+            const products = <%= JSON.stringify(products) %>;
+
+            function filterAndSortProducts() {
+                let filteredProducts = [...products];
+
+                // Filtros (ejemplo básico, a expandir según necesidades)
+                const searchTerm = $('#searchInput').val().toLowerCase();
+                if (searchTerm) {
+                    filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
+                }
+
+                // Ordenamiento
+                const sortOption = $('#sortOptions').val();
+                filteredProducts.sort((a, b) => {
+                    switch (sortOption) {
+                        case 'price-asc':
+                            return a.price - b.price;
+                        case 'price-desc':
+                            return b.price - a.price;
+                        case 'name-asc':
+                            return a.name.localeCompare(b.name);
+                        case 'name-desc':
+                            return b.name.localeCompare(a.name);
+                        default:
+                            return 0;
+                    }
+                });
+
+                // Renderizar productos
+                const productList = $('#productList');
+                productList.empty();
+                if (filteredProducts.length > 0) {
+                    filteredProducts.forEach(product => {
+                        const productHtml = `
+                            <div class="col-md-4 col-sm-6">
+                                <div class="product-card">
+                                    ${product.discount ? `<span class="badge badge-success">${product.discount}</span>` : ''}
+                                    ${product.status === 'coming soon' ? `<span class="badge badge-warning">Coming Soon</span>` : ''}
+                                    ${product.status === 'sold out' ? `<span class="badge badge-danger">Sold Out</span>` : ''}
+                                    <img src="${product.image || 'https://via.placeholder.com/300x150'}" alt="${product.name}" class="img-fluid">
+                                    <h5 class="card-title">${product.name}</h5>
+                                    <p>${product.description}</p>
+                                    <p class="font-weight-bold">$${product.price} USD</p>
+                                    <a href="https://wa.me/1234567890?text=Hola,%20estoy%20interesado%20en%20${encodeURIComponent(product.name)}.%20¿Me%20das%20más%20info?" target="_blank" class="whatsapp-btn">Consultar</a>
+                                </div>
+                            </div>
+                        `;
+                        productList.append(productHtml);
+                    });
+                } else {
+                    productList.html('<div class="col-12 text-center"><p>No hay productos disponibles.</p></div>');
+                }
+            }
+
+            // Event listeners
+            $('#searchInput').on('input', filterAndSortProducts);
+            $('#sortOptions').on('change', filterAndSortProducts);
+
+            // Inicializar
+            filterAndSortProducts();
+        });
+    </script>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\view_quote.ejs
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotización de Sistema de Seguridad</title>
+    <link rel="stylesheet" href="/cotizaciones_style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <img src="/logo.png" alt="Logo Empresa" style="display:none;">
+            </div>
+            <div class="header-right">
+                <%= company.city %>, <%= company.date %><br>
+                <%= company.name %><br>
+                Tel: <%= company.phone %><br>
+                Correo: <%= company.email %><br>
+                <%= company.website %>
+            </div>
+        </div>
+
+        <h1>COTIZACIÓN DE SISTEMA DE SEGURIDAD</h1>
+        <p>Señores: <%= quote.name %></p>
+
+        <% if (items.some(item => item.item_type === 'recorder')) { %>
+            <h2>DISPOSITIVOS DE GRABACIÓN</h2>
+            <table>
+                <tr>
+                    <th>Modelo</th>
+                    <th>Cantidad</th>
+                    <th>Precio Aprox. (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'recorder').forEach(item => { %>
+                    <tr>
+                        <td><%= item.recorder_model %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.recorder_price %></td>
+                        <td class="numeric"><%= (parseInt(item.recorder_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <% if (items.some(item => item.item_type === 'camera')) { %>
+            <h2>DISPOSITIVOS DE CÁMARAS</h2>
+            <table>
+                <tr>
+                    <th>Modelo</th>
+                    <th>Cantidad</th>
+                    <th>Precio Aprox. (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'camera').forEach(item => { %>
+                    <tr>
+                        <td><%= item.camera_model %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.camera_price %></td>
+                        <td class="numeric"><%= (parseInt(item.camera_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <% if (items.some(item => item.item_type === 'installation')) { %>
+            <h2>COSTO DE INSTALACIÓN (POR CÁMARA)</h2>
+            <table>
+                <tr>
+                    <th>Condición</th>
+                    <th>Cantidad</th>
+                    <th>Precio (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'installation').forEach(item => { %>
+                    <tr>
+                        <td><%= item.installation_condition %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.installation_price %></td>
+                        <td class="numeric"><%= (parseInt(item.installation_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <% if (items.some(item => item.item_type === 'accessory')) { %>
+            <h2>ACCESORIOS POR CÁMARA</h2>
+            <table>
+                <tr>
+                    <th>Accesorio</th>
+                    <th>Cantidad</th>
+                    <th>Precio (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'accessory').forEach(item => { %>
+                    <tr>
+                        <td><%= item.accessory_name %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.accessory_price %></td>
+                        <td class="numeric"><%= (parseInt(item.accessory_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <% if (items.some(item => item.item_type === 'cable')) { %>
+            <h2>COSTO DE CABLE POR METRO</h2>
+            <table>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Metros</th>
+                    <th>Precio por Metro (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'cable').forEach(item => { %>
+                    <tr>
+                        <td><%= item.cable_type %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.cable_price %></td>
+                        <td class="numeric"><%= (parseInt(item.cable_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <% if (items.some(item => item.item_type === 'protection')) { %>
+            <h2>COSTO DE PROTECCIÓN PARA CABLES (POR 2 METROS, OPCIONAL)</h2>
+            <table>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Cantidad (2m)</th>
+                    <th>Precio por 2m (COP)</th>
+                    <th>Total (COP)</th>
+                </tr>
+                <% items.filter(item => item.item_type === 'protection').forEach(item => { %>
+                    <tr>
+                        <td><%= item.protection_type %></td>
+                        <td class="numeric"><%= item.quantity %></td>
+                        <td class="numeric"><%= item.protection_price %></td>
+                        <td class="numeric"><%= (parseInt(item.protection_price.replace(/\./g, '')) * item.quantity).toLocaleString('es-CO') %></td>
+                    </tr>
+                <% }) %>
+            </table>
+        <% } %>
+
+        <div class="footer">
+            [Firma]       <%= company.phone %>       <%= company.email %>
+        </div>
+    </div>
+</body>
+</html>
+
+================================================================================
+# Archivo: views\partials\dashboard_nav.ejs
+================================================================================
+
+<!-- views/partials/dashboard_nav.ejs -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">Dashboard</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#dashboardNav" aria-controls="dashboardNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="dashboardNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">Inicio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_cameras">Cámaras</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_recorders">Grabadores</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_installation">Instalación</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_accessories">Accesorios</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_cables">Cables</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/manage_protection">Protección</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/create_quote">Crear Cotización</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/quotes">Cotizaciones</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/company_info">Info Empresa</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard/products">Productos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Cerrar Sesión</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+================================================================================
+# Archivo: views\partials\dashboard_nav_home.ejs
+================================================================================
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/">TechSoluciones Integrales</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Inicio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#servicios">Servicios</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/shop">Tienda</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#contacto">Contacto</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/login">Iniciar Sesión</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/register">Registrarse</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+================================================================================
+# Archivo: views\partials\footer.ejs
+================================================================================
+
+<!-- views/partials/footer.ejs -->
+<footer class="text-center py-3 bg-dark text-white">
+    <p>© 2025 TechSoluciones Integrales. Todos los derechos reservados.</p>
+</footer>
+
+================================================================================
+# Archivo: views\partials\layout.ejs
+================================================================================
+
+<!-- views/partials/layout.ejs -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title><%= title %> - DPTECH</title>
+    <!-- Bootstrap 4 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout" role="button">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Sidebar Container -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <a href="#" class="brand-link">
+                <img src="https://scontent.feoh11-1.fna.fbcdn.net/v/t39.30808-6/309450787_530191355773347_1930846317585276991_n.png?_nc_cat=104&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=kiO1SkiUUMUQ7kNvgE1n5OH&_nc_oc=AdgFskbLU1MMr5wcQMNE3A33Zm2ACGUpbkMueZeoPWLz0ypJ2ibHKDFYkf0V6WKbmbg&_nc_zt=23&_nc_ht=scontent.feoh11-1.fna&_nc_gid=AH6uGzdc_T-rBFC01la3m4B&oh=00_AYHeOeEdO2UnldW6Ns4Kdr7w07LY0xQwpM2XWFCMR5-KLg&oe=67D330BA" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+                <span class="brand-text font-weight-light">DPTECH</span>
+            </a>
+            <div class="sidebar">
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="image">
+                        <img src="https://scontent.feoh11-1.fna.fbcdn.net/v/t39.30808-1/297280153_8223883027636941_3065647301383225366_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=104&ccb=1-7&_nc_sid=1d2534&_nc_ohc=6iPn8Xkgb9cQ7kNvgHzftkW&_nc_oc=AdhlXomTKCh9wYZadTDwO3z835b_itzZC1ZbJvD8DRdG5PzkK1A1NRwjEZLJrRpTxMk&_nc_zt=24&_nc_ht=scontent.feoh11-1.fna&_nc_gid=AqYHCgNws5JhkogH9TN_QVw&oh=00_AYGvg-3Sup8hLraAbPe38tDmnqdo4hFRpEmIWevxB82l-g&oe=67D3352D" class="img-circle elevation-2" alt="User Image">
+                    </div>
+                    <div class="info">
+                        <a href="#" class="d-block">stick</a>
+                    </div>
+                </div>
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <li class="nav-item">
+                            <a href="/dashboard" class="nav-link">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>Dashboard</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_cameras" class="nav-link">
+                                <i class="nav-icon fas fa-camera"></i>
+                                <p>Gestionar Cámaras</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_recorders" class="nav-link">
+                                <i class="nav-icon fas fa-video"></i>
+                                <p>Gestionar Grabadores</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_installation" class="nav-link">
+                                <i class="nav-icon fas fa-tools"></i>
+                                <p>Gestionar Costos de Instalación</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_accessories" class="nav-link">
+                                <i class="nav-icon fas fa-cogs"></i>
+                                <p>Gestionar Accesorios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_cables" class="nav-link">
+                                <i class="nav-icon fas fa-plug"></i>
+                                <p>Gestionar Cables</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/manage_protection" class="nav-link">
+                                <i class="nav-icon fas fa-shield-alt"></i>
+                                <p>Gestionar Protección de Cables</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/create_quote" class="nav-link">
+                                <i class="nav-icon fas fa-file-alt"></i>
+                                <p>Crear Cotización</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/quotes" class="nav-link">
+                                <i class="nav-icon fas fa-list"></i>
+                                <p>Ver Lista de Cotizaciones</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/company_info" class="nav-link">
+                                <i class="nav-icon fas fa-building"></i>
+                                <p>Editar Información de la Empresa</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/dashboard/products" class="nav-link">
+                                <i class="nav-icon fas fa-box"></i>
+                                <p>Gestionar Productos</p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Content Header -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0"><%= title %></h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-right">
+                                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                                <li class="breadcrumb-item active"><%= title %></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <%- body %>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Version</b> 1.0.0
+            </div>
+            <strong>© 2025 TechSoluciones Integrales.</strong> Todos los derechos reservados.
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+</html>
+
+================================================================================
+# Archivo: package.json
+# Descripción: Configuración de dependencias y scripts
+================================================================================
+
+{
+  "name": "proyecto-cotizaciones",
+  "version": "1.0.0",
+  "description": "Sistema de cotizaciones para seguridad",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "admin-lte": "^3.2.0",
+    "bcryptjs": "^3.0.2",
+    "bootstrap": "^4.6.2",
+    "connect-sqlite3": "^0.9.15",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.1",
+    "jquery": "^3.7.1",
+    "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "sqlite3": "^5.1.7"
+  }
+}
+
+
+================================================================================
+# Fin del proyecto
