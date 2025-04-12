@@ -93,6 +93,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
 const quoteRoutes = require('./routes/quote');
+const homeRoutes = require('./routes/home');
 
 // Rutas principales - orden corregido
 app.use('/shop', shopRoutes);

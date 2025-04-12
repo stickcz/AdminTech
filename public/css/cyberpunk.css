@@ -111,6 +111,7 @@ body::before {
 
 /* Icons */
 .service-card i {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 255, 0.2));
     color: #00D4FF;
     text-shadow: 0 0 10px #00D4FF;
     transition: all 0.3s ease;
